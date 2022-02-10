@@ -40,7 +40,7 @@ class WebScraper:
 
     """
 
-    def __init__(self, url: str, usr_name: str = '', pword: str = '', sample_mode: bool = False) -> None:
+    def __init__(self, url: str, usr_name: Optional[str] = '', pword: Optional[str] = '', sample_mode: Optional[bool] = False) -> None:
         """Constructor method for the Class.
 
         This method creates all class variables, initiates the method
@@ -49,7 +49,9 @@ class WebScraper:
 
         Args:
             url: URL for website to be scraped.
-            sample_mode: Mode for testing the script by scraping one player only.
+            usr_name: Optional user input for user name.
+            pword: Optional user input for password.
+            sample_mode: Optional mode for testing the script by scraping one player only.
 
         Attributes:
             sample_mode: Mode for collecting one player sample for testing.

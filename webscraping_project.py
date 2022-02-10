@@ -568,7 +568,6 @@ class WebScraper:
         Attributes:
             plyr_attr_parent: Parent web element of player.
             plyr_attr_children: Child web element of player.
-            plyr_name: Player name.
             plyr_pos: Player position.
             plyr_team: Player team.
 
@@ -580,15 +579,14 @@ class WebScraper:
         plyr_attr_children: list[WebElement] = plyr_attr_parent.find_elements(By.XPATH, './*')
         for attr in plyr_attr_children:
             if attr.tag_name == 'h2':
-                plyr_name: str = attr.text
+                self.plyr_name = attr.text
             elif attr.tag_name == 'span':
                 plyr_pos: str = attr.text
             elif attr.tag_name == 'div':
                 plyr_team: str = attr.text
             else:
                 pass
-        self.plyr_name = plyr_name
-        self.plyr_dict = {plyr_name: {'UUID': str(uuid.uuid4()), 'Position': plyr_pos, 'Team': plyr_team}}
+        self.plyr_dict = {'Name': self.plyr_name, 'UUID': str(uuid.uuid4()), 'Position': plyr_pos, 'Team': plyr_team}
         return
 
     def get_plyr_status(self):
@@ -610,7 +608,7 @@ class WebScraper:
             status: str = plyr_status.text
         except NoSuchElementException:
             status: str = '100% Fit'
-        self.plyr_dict[self.plyr_name]['Status'] = status
+        self.plyr_dict['Status'] = status
         return
 
     def get_plyr_img_src(self):
@@ -631,7 +629,7 @@ class WebScraper:
         img_parent: WebElement = self.find_xpaths(self.tags['PlyrImg'])
         img: WebElement = img_parent.find_element(By.XPATH, './/*')
         img_src: str = img.get_attribute('src')
-        self.plyr_dict[self.plyr_name]['Image SRC'] = img_src
+        self.plyr_dict['Image SRC'] = img_src
         return
 
     def get_plyr_attr(self, key_list: dict, k: str):
@@ -655,17 +653,18 @@ class WebScraper:
         """
         plyr_attr_parent: WebElement = self.find_xpaths(key_list['xpath'])
         plyr_attr_children: list[WebElement] = plyr_attr_parent.find_elements(By.XPATH, './/*')
-        if k == 'plyr_ICT':
-            self.plyr_dict[self.plyr_name]['ICT'] = {}
         for attr in plyr_attr_children:
             if attr.tag_name == key_list['heading']:
                 attr_name: str = attr.text
             elif attr.tag_name == key_list['heading_value']:
                 attr_value: str = attr.text
                 if k == 'plyr_ICT':
-                    self.plyr_dict[self.plyr_name]['ICT'][attr_name] = attr_value
+                    if attr_name == 'ICT Index':
+                        self.plyr_dict[f'{attr_name}'] = attr_value
+                    else:
+                        self.plyr_dict[f'ICT {attr_name}'] = attr_value
                 else:
-                    self.plyr_dict[self.plyr_name][attr_name] = attr_value
+                    self.plyr_dict[attr_name] = attr_value
                 attr_name = ''
                 attr_value = ''
         return
@@ -700,7 +699,7 @@ class WebScraper:
             plyr_attr_children = plyr_attr_parent.find_elements(By.XPATH, './/*')
             self.get_table(plyr_attr_children, match_data_type)
         except NoSuchElementException:
-            self.plyr_dict[self.plyr_name][match_data_type] = 'No data'
+            self.plyr_dict[match_data_type] = 'No data'
         return
 
     def get_table(self, plyr_attr_children: WebElement, match_data_type: str) -> None:
@@ -723,13 +722,13 @@ class WebScraper:
 
         """
         i: int = 0
-        self.plyr_dict[self.plyr_name][match_data_type] = []
+        self.plyr_dict[match_data_type] = []
         for attr in plyr_attr_children:
             if attr.tag_name == 'tr':
-                self.plyr_dict[self.plyr_name][match_data_type].append([])
+                self.plyr_dict[match_data_type].append([])
                 i += 1
             elif attr.tag_name == 'th' or attr.tag_name == 'td':
-                self.plyr_dict[self.plyr_name][match_data_type][i - 1].append(attr.text)
+                self.plyr_dict[match_data_type][i - 1].append(attr.text)
         return
 
     def process_output(self) -> None:
@@ -752,7 +751,7 @@ class WebScraper:
         """
         plyr_dir, img_dir = self.prep_dir()
         json_file_path: str = self.create_file_path(plyr_dir, f'{plyr_dir}/data.json')
-        img_path: str = self.create_file_path(img_dir, '0.png')
+        img_path: str = self.create_file_path(img_dir, f'{self.plyr_name.replace(" ", "_")}_0.png')
         self.write_to_file(json_file_path, img_path)
         return
 
@@ -761,10 +760,6 @@ class WebScraper:
 
         This method handles the creation of new folders for the player data
         to be saved within.
-
-        Args:
-            plyr_name: Name of current playing being scraped.
-            plyr_dict: Dictionary of scraped data.
 
         Attributes:
             plyr_dir: Directory path for player data to be saved.
@@ -775,7 +770,7 @@ class WebScraper:
             img_dir
 
         """
-        plyr_dir: str = self.make_folder(self.dir_name, self.plyr_dict[self.plyr_name]['UUID'])
+        plyr_dir: str = self.make_folder(self.dir_name, self.plyr_dict['UUID'])
         img_dir: str = self.make_folder(plyr_dir, 'images')
         return plyr_dir, img_dir
 
@@ -796,7 +791,7 @@ class WebScraper:
         """
         with open(json_file_path, 'x') as json_file:
             json.dump(self.plyr_dict, json_file)
-        urllib.request.urlretrieve(self.plyr_dict[self.plyr_name]['Image SRC'], img_path)
+        urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
         return
 
     def calc_timestep(self) -> float:
@@ -842,9 +837,6 @@ class WebScraper:
 
     def progress_update(self) -> None:
         """Prints stats on the scraper's progress.
-
-        Args:
-            plyr_name: Name of last player scraped.
 
         Attributes:
             progress: % complete.

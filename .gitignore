@@ -1,0 +1,5 @@
+# Ignore raw_data folder
+raw_data
+
+#Ignore pycache
+__pycache__

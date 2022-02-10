@@ -79,7 +79,7 @@ class WebScraper:
         self.url: str = url
         self.tic: float = time.perf_counter()
         self.script_dir: str = os.path.dirname(__file__)
-        self.dir_name: str = f'raw_data_{datetime.now().replace(microsecond=0).isoformat()}'
+        self.dir_name: str = f'raw_data/raw_data_{datetime.now().replace(microsecond=0).isoformat()}'
         self.make_folder(self.dir_name)
         self.page_counter: int = 1
         self.chk_new_page: bool = True

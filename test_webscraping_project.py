@@ -11,7 +11,7 @@ class WebScraperTestCase(unittest.TestCase):
     """
 
     @classmethod
-    def setUpClass(self) -> None:
+    def setUpClass(cls) -> None:
         """Sets up the answers for the test cases.
 
         This function supplies a manually inputted dictionary of scraped

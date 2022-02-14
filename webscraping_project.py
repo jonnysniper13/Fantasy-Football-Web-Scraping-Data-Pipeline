@@ -25,6 +25,7 @@ import json
 import time
 from datetime import datetime
 import os
+import cred
 import uuid
 import urllib.request
 from typing import Optional, Union
@@ -40,7 +41,7 @@ class WebScraper:
 
     """
 
-    def __init__(self, url: str, usr_name: Optional[str] = '', pword: Optional[str] = '', sample_mode: Optional[bool] = False) -> None:
+    def __init__(self, url: str, sample_mode: Optional[bool] = False) -> None:
         """Constructor method for the Class.
 
         This method creates all class variables, initiates the method
@@ -49,8 +50,6 @@ class WebScraper:
 
         Args:
             url: URL for website to be scraped.
-            usr_name: Optional user input for user name.
-            pword: Optional user input for password.
             sample_mode: Optional mode for testing the script by scraping one player
                 only.
 
@@ -59,8 +58,7 @@ class WebScraper:
             url: URL for website to be scraped.
             tic: App timer start timestmamp.
             script_dir: Root directory path name.
-            dir_name: Directory path name for data to be exported
-                to.
+            timestamp: Create timestamp for scraper.
             page_counter: Counter to count the current page for the
                 list of players.
             chk_new_page: Boolean variable that determines if the current
@@ -69,8 +67,9 @@ class WebScraper:
             plyr_count: Counter to count the number of players that
                 have been scraped.
             total_plyrs: Total number of players to be scraped.
-            plyr_name: Name of player being scraped.
             plyr_dict: Dictionary of data for that player.
+            plyr_dir: Directory path for player data to be saved.
+            img_dir: Directory path for player image to be saved.
             tags: HTML XPATH and tag names to be used by Selenium.
             self.driver: Initiates the Chromedriver element.
 
@@ -79,71 +78,22 @@ class WebScraper:
 
         """
         self.sample_mode: bool = sample_mode
-        self.__get_credentials(usr_name, pword)
+        self.__get_credentials()
         self.url: str = url
         self.tic: float = time.perf_counter()
         self.script_dir: str = os.path.dirname(__file__)
-        self.dir_name: str = f'raw_data/raw_data_{datetime.now().replace(microsecond=0).isoformat()}'
-        self.make_folder(self.dir_name)
+        self.timestamp: str = f'{datetime.now().replace(microsecond=0).isoformat()}'
         self.page_counter: int = 1
         self.chk_new_page: bool = True
         self.total_pages: int = 0
         self.plyr_count: int = 0
         self.total_plyrs: int = 0
         self.plyr_dict: dict = {}
-        self.plyr_name: str = ""
+        self.plyr_dir: str = ''
+        self.img_dir: str = ''
         self.tags: int = self.get_html_tags()
         self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
         self.cycle_scraper()
-
-    def make_folder(self, *args: list[str]) -> str:
-        """Helper function to create new folders in a specified location.
-
-        This function creates a new folder in a location specified in the
-        method arguments. It first creates the full path string and then
-        calls a method to create the directory.
-
-        Args:
-            *args: Variable length argument list of folder names.
-
-        Attributes:
-            dir_path = Full folder path of the new folder.
-
-        Raises:
-            FileExistsError: Prints error message if an existing folder
-            already exists.
-
-        Returns:
-            dir_path
-
-        """
-        dir_path = self.create_file_path(self.script_dir, *args)
-        try:
-            os.mkdir(dir_path)
-        except FileExistsError:
-            print("Directory ", dir_path,  " already exists")
-        return dir_path
-
-    @staticmethod
-    def create_file_path(root_dir: str, *args: list[str]) -> str:
-        """Helper function to create full filepaths from arguments.
-
-        This function creates a full filepath based on the root directory
-        and further specified folder names.
-
-        Args:
-            root_dir: Root directory path.
-            *args: Variable length argument list of folder names.
-
-        Attributes:
-            file_path: Full file path string.
-
-        Returns:
-            file_path
-
-        """
-        file_path: str = os.path.join(root_dir, *args)
-        return file_path
 
     @staticmethod
     def get_html_tags() -> dict:
@@ -316,10 +266,10 @@ class WebScraper:
                 obj: list[WebElement] = self.driver.find_elements(By.XPATH, f"//*[@{tag}]")
             else:
                 obj: WebElement = self.driver.find_element(By.XPATH, f"//*[@{tag}]")
+            time.sleep(1)
+            return obj
         except TimeoutException:
             print("Loading took too much time!")
-        time.sleep(1)
-        return obj
 
     def close_popup(self, popup_name: WebElement) -> None:
         """Helper function to close popups.
@@ -342,19 +292,15 @@ class WebScraper:
         try:
             popup_name.click()
             WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((popup_name)))
+            time.sleep(1)
         except TimeoutException:
             print("Loading took too much time!")
-        time.sleep(1)
 
-    def __get_credentials(self, usr_name: str = '', pword: str = '') -> None:
+    def __get_credentials(self) -> None:
         """Private method that creates the login credentials.
 
         Creates login credentials based on arguments passed to the Class
         or user inputted arguments.
-
-        Args:
-            usr_name: Login user name.
-            pword: Login password.
 
         Attributes:
             usr_name: Login user name.
@@ -364,9 +310,13 @@ class WebScraper:
             None
 
         """
-        if usr_name == '':
+        try:
+            usr_name = cred.username
+        except Exception:
             usr_name = input("Enter username:")
-        if pword == '':
+        try:
+            pword = cred.password
+        except Exception:
             pword = getpass.getpass('Enter password:')
         self.usr_name = usr_name
         self.pword = pword
@@ -503,8 +453,8 @@ class WebScraper:
 
         This method will cycle through the players on the current page list
         and call the method for scraping the different types of
-        data. After scraping the data it processes the output, clears the
-        dictionary and reports on progress.
+        data. After scraping the data it clears the dictionary, reports on
+        progress and resets instance attributes.
 
         Attributes:
             plyr_list: List of all player elements.
@@ -521,29 +471,36 @@ class WebScraper:
             popup: WebElement = self.find_xpaths(self.tags['PlyrPopup'])
             self.plyr_count += 1
             self.close_popup(popup)
-            self.process_output()
             if self.sample_mode:
                 self.chk_new_page = False
                 break
             self.progress_update()
+            self.plyr_dict = {}
+            self.plyr_dir = ''
+            self.img_dir = ''
 
     def get_plyr_stats(self):
         """Handles scraping method for different data types.
 
         This method scrapes the different types of data available for
-        each player and assigns them to the player dictionary.
+        each player and assigns them to the player dictionary which is
+        then written to a file. This is only performed if the player
+        hasn't recently been scraped.
 
         Returns:
             None
 
         """
         self.get_plyr_details()
-        self.get_plyr_status()
-        self.get_plyr_img_src()
-        for k in self.tags['PlyrDetailSections']:
-            self.get_plyr_attr(self.tags['PlyrDetailSections'][k], k)
-        for k, v in self.tags['MatchDataKeyList'].items():
-            self.get_match_data(k, v)
+        plyr_already_scraped = self.check_plyr_scraped()
+        if not plyr_already_scraped:
+            self.get_plyr_status()
+            self.get_plyr_img_src()
+            for k in self.tags['PlyrDetailSections']:
+                self.get_plyr_attr(self.tags['PlyrDetailSections'][k], k)
+            for k, v in self.tags['MatchDataKeyList'].items():
+                self.get_match_data(k, v)
+            self.process_output()
 
     def get_plyr_details(self) -> None:
         """Gets players details.
@@ -556,6 +513,7 @@ class WebScraper:
             plyr_attr_children: Child web element of player.
             plyr_pos: Player position.
             plyr_team: Player team.
+            id: Unique ID for each player.
 
         Returns:
             None
@@ -565,14 +523,117 @@ class WebScraper:
         plyr_attr_children: list[WebElement] = plyr_attr_parent.find_elements(By.XPATH, './*')
         for attr in plyr_attr_children:
             if attr.tag_name == 'h2':
-                self.plyr_name = attr.text
+                plyr_name = attr.text
             elif attr.tag_name == 'span':
                 plyr_pos: str = attr.text
             elif attr.tag_name == 'div':
                 plyr_team: str = attr.text
             else:
                 pass
-        self.plyr_dict = {'Name': self.plyr_name, 'UUID': str(uuid.uuid4()), 'Position': plyr_pos, 'Team': plyr_team}
+        id: str = ' '.join([plyr_name, plyr_pos, plyr_team]).replace(' ', '-')
+        self.plyr_dict = {
+            'Name': plyr_name,
+            'Unique ID': id,
+            'UUID': str(uuid.uuid4()),
+            'Position': plyr_pos,
+            'Team': plyr_team}
+
+    def check_plyr_scraped(self) -> bool:
+        """This method checks if a player has recently been scraped.
+
+        This method checks if a player has recently been scraped
+        by checking any json files in the data output directory.
+        If a file exists and it was scraped within the last week,
+        the player will not be scraped again. For all other
+        permutations, the file will be deleted and player scraped.
+
+        Attributes:
+            old_plyr_dict = Previously scraped dictionary of player data.
+            date_scraped = Date player was last scraped.
+            delta = Delta between now and the date the player was last
+                scraped.
+
+        Returns:
+            None
+
+        """
+        self.prep_dir()
+        for file in os.listdir(self.plyr_dir):
+            if file[-5:] == '.json':
+                full_file = os.path.join(self.plyr_dir, file)
+                with open(full_file) as json_file:
+                    old_plyr_dict: dict = json.load(json_file)
+                date_scraped: datetime = datetime.strptime(file[:10], '%Y-%m-%d')
+                delta: int = (datetime.now() - date_scraped).days
+                if old_plyr_dict['Unique ID'] == self.plyr_dict['Unique ID'] and delta < 7:
+                    self.plyr_dict = old_plyr_dict
+                    return True
+                else:
+                    os.remove(full_file)
+                    return False
+
+    def prep_dir(self) -> None:
+        """Prepares the directories for saving json file and image data.
+
+        This method handles the creation of new folders for the player data
+        to be saved within.
+
+        Returns:
+            None
+
+        """
+        self.plyr_dir = self.make_folder('raw_data', self.plyr_dict['Unique ID'])
+        self.img_dir = self.make_folder(self.plyr_dir, 'images')
+        return
+
+    def make_folder(self, *args: list[str]) -> str:
+        """Helper function to create new folders in a specified location.
+
+        This function creates a new folder in a location specified in the
+        method arguments. It first creates the full path string and then
+        calls a method to create the directory.
+
+        Args:
+            *args: Variable length argument list of folder names.
+
+        Attributes:
+            dir_path = Full folder path of the new folder.
+
+        Raises:
+            FileExistsError: Prints error message if an existing folder
+            already exists.
+
+        Returns:
+            dir_path
+
+        """
+        dir_path = self.create_file_path(self.script_dir, *args)
+        try:
+            os.mkdir(dir_path)
+            return dir_path
+        except FileExistsError:
+            return dir_path
+
+    @staticmethod
+    def create_file_path(root_dir: str, *args: list[str]) -> str:
+        """Helper function to create full filepaths from arguments.
+
+        This function creates a full filepath based on the root directory
+        and further specified folder names.
+
+        Args:
+            root_dir: Root directory path.
+            *args: Variable length argument list of folder names.
+
+        Attributes:
+            file_path: Full file path string.
+
+        Returns:
+            file_path
+
+        """
+        file_path: str = os.path.join(root_dir, *args)
+        return file_path
 
     def get_plyr_status(self):
         """Gets player fitness status.
@@ -714,55 +775,31 @@ class WebScraper:
     def process_output(self) -> None:
         """Handles the routine for processing the scraper output.
 
-        This method calls the method to make new folders for scraper
-        output to be saved within. It then creates full file paths
-        that include the file name, to support further exporting of
-        data. It then calls the method in which data is exported to file.
+        This method calls creates full file paths that include the
+        file name, to support further exporting of data. It then calls
+        the method in which data is exported to file.
 
         Attributes:
-            plyr_dir: Directory path for player data to be saved.
-            img_dir: Directory path for player image to be saved.
             json_file_path: Dir path for json file to be saved.
-            img_path: Dir path for image to be saved.
+            img_file_path: Dir path for image to be saved.
 
         Returns:
             None
 
         """
-        plyr_dir, img_dir = self.prep_dir()
-        json_file_path: str = self.create_file_path(plyr_dir, f'{plyr_dir}/data.json')
-        img_path: str = self.create_file_path(img_dir, f'{self.plyr_name.replace(" ", "_")}_0.png')
-        self.write_to_file(json_file_path, img_path)
+        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.timestamp}_data.json')
+        img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["Unique ID"]}_0.png')
+        self.write_json(json_file_path)
+        self.write_img(img_file_path)
 
-    def prep_dir(self) -> list[str]:
-        """Prepares the directories for saving json file and image data.
-
-        This method handles the creation of new folders for the player data
-        to be saved within.
-
-        Attributes:
-            plyr_dir: Directory path for player data to be saved.
-            img_dir: Directory path for player image to be saved.
-
-        Returns:
-            plyr_dir
-            img_dir
-
-        """
-        plyr_dir: str = self.make_folder(self.dir_name, self.plyr_dict['UUID'])
-        img_dir: str = self.make_folder(plyr_dir, 'images')
-        return plyr_dir, img_dir
-
-    def write_to_file(self, json_file_path: str, img_path: str) -> None:
-        """Saves player dictionary and image in player folder.
+    def write_json(self, json_file_path: str) -> None:
+        """Saves player dictionary in player folder.
 
         This method saves the player dictionary to a json file in the
-        player's target folder. It also saves the player's image using
-        urllib provided the path starts with 'http'.
+        player's target folder.
 
         Args:
             json_file_path: Dir path for json file to be saved.
-            img_path: Dir path for image to be saved.
 
         Returns:
             None
@@ -770,8 +807,24 @@ class WebScraper:
         """
         with open(json_file_path, 'x') as json_file:
             json.dump(self.plyr_dict, json_file)
-        if self.plyr_dict['Image SRC'].lower().startswith('http'):
-            urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
+
+    def write_img(self, img_file_path: str) -> None:
+        """Saves player image in player folder if it is empty.
+
+        This method checks if the player's image folder is empty
+        and then saves the player's image then, provided the
+        urllib path starts with 'http'.
+
+        Args:
+            img_file_path: Dir path for image to be saved.
+
+        Returns:
+            None
+
+        """
+        if len(os.listdir(os.path.dirname(img_file_path))) == 0:
+            if self.plyr_dict['Image SRC'].lower().startswith('http'):
+                urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_file_path)
 
     def calc_timestep(self) -> float:
         """Calculates the time elapsed.
@@ -827,7 +880,7 @@ class WebScraper:
 
         """
         prog_stats = self.progress_stats()
-        print(f'{self.plyr_name} just scraped.')
+        print(f'{self.plyr_dict["Name"]} just scraped.')
         print(f'{self.plyr_count} players of {self.total_plyrs} scraped in {round(prog_stats[1] / 60)} minutes.')
         print(f'{100 * prog_stats[0]:.2f}% complete. Estimated {round(prog_stats[2] / 60)} minutes remaining.')
 

@@ -6,3 +6,6 @@ _dev
 
 # Ignore __pycache__
 __pycache__
+
+# Ignore credentials file
+cred.py

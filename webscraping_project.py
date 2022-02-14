@@ -270,6 +270,7 @@ class WebScraper:
             return obj
         except TimeoutException:
             print("Loading took too much time!")
+            return None
 
     def close_popup(self, popup_name: WebElement) -> None:
         """Helper function to close popups.
@@ -312,11 +313,11 @@ class WebScraper:
         """
         try:
             usr_name = cred.username
-        except Exception:
+        except AttributeError:
             usr_name = input("Enter username:")
         try:
             pword = cred.password
-        except Exception:
+        except AttributeError:
             pword = getpass.getpass('Enter password:')
         self.usr_name = usr_name
         self.pword = pword
@@ -568,9 +569,8 @@ class WebScraper:
                 if old_plyr_dict['Unique ID'] == self.plyr_dict['Unique ID'] and delta < 7:
                     self.plyr_dict = old_plyr_dict
                     return True
-                else:
-                    os.remove(full_file)
-                    return False
+                os.remove(full_file)
+        return False
 
     def prep_dir(self) -> None:
         """Prepares the directories for saving json file and image data.
@@ -822,9 +822,8 @@ class WebScraper:
             None
 
         """
-        if len(os.listdir(os.path.dirname(img_file_path))) == 0:
-            if self.plyr_dict['Image SRC'].lower().startswith('http'):
-                urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_file_path)
+        if len(os.listdir(os.path.dirname(img_file_path))) == 0 and self.plyr_dict['Image SRC'].lower().startswith('http'):
+            urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_file_path)
 
     def calc_timestep(self) -> float:
         """Calculates the time elapsed.

@@ -47,9 +47,7 @@ class WebScraperTestCase(unittest.TestCase):
             }
 
     def test_plyr_attr(self):
-        """Tests player's key attributes by comparing dictionaries.
-
-        """
+        """Tests player's key attributes by comparing dictionaries."""
         exp_value = self.test_answers['Sample Player Stats']
         key_list = list(exp_value.keys())
         act_value = {k: v for k, v in self.sample_plyr.items() if k in key_list}
@@ -59,90 +57,68 @@ class WebScraperTestCase(unittest.TestCase):
 
     def test_plyr_attr_type(self):
         """Tests player's key attributes by comparing dictionaries of
-        data types.
-
-        """
+        data types."""
         exp_value = [type(v) for _, v in self.test_answers['Sample Player Stats'].items()]
         key_list = list(self.test_answers['Sample Player Stats'].keys())
         act_value = [type(v) for k, v in self.sample_plyr.items() if k in key_list]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_img(self):
-        """Tests player's image SRCs by comparing strings.
-
-        """
+        """Tests player's image SRCs by comparing strings."""
         exp_value = self.test_answers['Sample Player Img']
         act_value = self.sample_plyr['Image SRC']
         self.assertMultiLineEqual(exp_value, act_value)
 
     def test_plyr_img_type(self):
-        """Tests player's image SRCs by comparing data types.
-
-        """
+        """Tests player's image SRCs by comparing data types."""
         exp_value = type(self.test_answers['Sample Player Img'])
         act_value = type(self.sample_plyr['Image SRC'])
         self.assertEqual(exp_value, act_value)
 
     def test_plyr_season_stats(self):
-        """Tests player's season stats by comparing lists.
-
-        """
+        """Tests player's season stats by comparing lists."""
         exp_value = self.test_answers['2021/22']
         act_value = self.sample_plyr['2021/22'][1]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_season_stats_type(self):
-        """Tests player's season stats by comparing lists of data types.
-
-        """
+        """Tests player's season stats by comparing lists of data types."""
         exp_value = [type(i) for i in self.test_answers['2021/22']]
         act_value = [type(i) for i in self.sample_plyr['2021/22'][1]]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_prev_seasons(self):
-        """Tests player's previous season stats by comparing lists.
-
-        """
+        """Tests player's previous season stats by comparing lists."""
         exp_value = self.test_answers["Previous Seasons"]
         act_value = self.sample_plyr["Previous Seasons"][1]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_prev_seasons_type(self):
-        """Tests player's previous season stats by comparing lists of data types.
-
-        """
+        """Tests player's previous season stats by comparing lists of data types."""
         exp_value = [type(i) for i in self.test_answers["Previous Seasons"]]
         act_value = [type(i) for i in self.sample_plyr["Previous Seasons"][1]]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_fixtures(self):
-        """Tests player's fixtures by comparing lists.
-
-        """
+        """Tests player's fixtures by comparing lists."""
         exp_value = self.test_answers["Fixtures"]
         act_value = self.sample_plyr["Fixtures"][1]
         self.assertListEqual(exp_value, act_value)
 
     def test_plyr_fixtures_type(self):
-        """Tests player's fixtures by comparing lists of data types.
-
-        """
+        """Tests player's fixtures by comparing lists of data types."""
         exp_value = [type(i) for i in self.test_answers["Fixtures"]]
         act_value = [type(i) for i in self.sample_plyr["Fixtures"][1]]
         self.assertListEqual(exp_value, act_value)
 
     def test_total_pages(self):
-        """Tests total number of pages to be scraped by comparing integers.
-
-        """
+        """Tests total number of pages to be scraped by comparing integers."""
         exp_value = self.test_answers["Total Pages"]
         act_value = self.sample_total_pages
         self.assertEqual(exp_value, act_value)
 
     def test_total_plyrs(self):
-        """Tests total number of players to be scraped by comparing integers.
-
-        """
+        """Tests total number of players to be scraped by comparing integers."""
         exp_value = self.test_answers["Total Players"]
         act_value = self.sample_total_plyrs
         self.assertEqual(exp_value, act_value)

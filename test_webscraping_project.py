@@ -53,7 +53,7 @@ class WebScraperTestCase(unittest.TestCase):
         self.assertDictEqual(exp_value, act_value)
 
     def test_plyr_attr_type(self):
-        """Tests player's key attributes by comparing dictionaries of 
+        """Tests player's key attributes by comparing dictionaries of
         data types.
 
         """

@@ -206,7 +206,6 @@ class WebScraper:
         while self.chk_new_page:
             self.scrape()
             time.sleep(10)
-        return
 
     def scrape(self) -> None:
         """Function to initiate the web scraper.
@@ -244,7 +243,6 @@ class WebScraper:
                 self.chk_new_page = False
             self.page_finished_msg()
             self.page_counter += 1
-        return
 
     @staticmethod
     def setup_options():
@@ -286,7 +284,6 @@ class WebScraper:
         accept_cookies_button: WebElement = self.find_xpaths(self.tags['CookieButton'], multi=False, pause=True)
         self.close_popup(accept_cookies_button)
         self.driver.switch_to.default_content()
-        return
 
     def find_xpaths(self, tag: str, multi: Optional[bool] = False, pause: Optional[bool] = False) -> Union[WebElement, list[WebElement]]:
         """Helper function to shorten syntax for finding data types.
@@ -351,7 +348,6 @@ class WebScraper:
         except TimeoutException:
             print("Loading took too much time!")
         time.sleep(1)
-        return
 
     def __get_credentials(self, usr_name: str = '', pword: str = '') -> None:
         """Private method that creates the login credentials.
@@ -377,7 +373,6 @@ class WebScraper:
             pword = getpass.getpass('Enter password:')
         self.usr_name = usr_name
         self.pword = pword
-        return
 
     def login(self) -> None:
         """Method to handle login page.
@@ -404,7 +399,6 @@ class WebScraper:
         pword_name_field.send_keys(self.pword)
         login_button: WebElement = self.find_xpaths(self.tags['LoginButton'])
         self.close_popup(login_button)
-        return
 
     def navigate(self, destination: str) -> None:
         """Method to navigate to a specified page.
@@ -421,7 +415,6 @@ class WebScraper:
         """
         nav_to = self.find_xpaths(destination, multi=False, pause=True)
         nav_to.click()
-        return
 
     def count_total_players(self) -> None:
         """Method to count the total number of players to be scraped.
@@ -443,7 +436,6 @@ class WebScraper:
         total_plyrs_header: WebElement = self.find_xpaths(self.tags['PlyrCount'])
         total_plyrs: WebElement = total_plyrs_header.find_element(By.XPATH, self.tags['PlyrCountChild'])
         self.total_plyrs = int(total_plyrs.text)
-        return
 
     def count_total_pages(self) -> None:
         """Method to count the total number of pages to be scraped.
@@ -465,7 +457,6 @@ class WebScraper:
         total_pages_header: WebElement = self.find_xpaths(self.tags['PageCount'])
         total_pages: WebElement = total_pages_header.find_element(By.XPATH, f'./*[@{self.tags["PageCountChild"]}]')
         self.total_pages = int(total_pages.text.split()[2])
-        return
 
     def goto_page(self) -> None:
         """Method that moves player list to required page.
@@ -487,7 +478,6 @@ class WebScraper:
         for _ in range(1, self.page_counter):
             page_buttons: list[WebElement] = self.find_xpaths(self.tags['NextPageButton'], multi=True)
             self.click_next(page_buttons)
-        return
 
     @staticmethod
     def click_next(page_buttons: list[WebElement]) -> None:
@@ -510,7 +500,6 @@ class WebScraper:
                 button.click()
                 break
         time.sleep(1)
-        return
 
     def cycle_thru_plyr_list(self) -> None:
         """Cycles through player page and calls scraping method and output.
@@ -540,7 +529,6 @@ class WebScraper:
                 self.chk_new_page = False
                 break
             self.progress_update()
-        return
 
     def get_plyr_stats(self):
         """Handles scraping method for different data types.
@@ -697,7 +685,6 @@ class WebScraper:
             self.get_table(plyr_attr_children, match_data_type)
         except NoSuchElementException:
             self.plyr_dict[match_data_type] = 'No data'
-        return
 
     def get_table(self, plyr_attr_children: WebElement, match_data_type: str) -> None:
         """Scrapes tabular data.
@@ -726,7 +713,6 @@ class WebScraper:
                 i += 1
             elif attr.tag_name in ['th', 'td']:
                 self.plyr_dict[match_data_type][i - 1].append(attr.text)
-        return
 
     def process_output(self) -> None:
         """Handles the routine for processing the scraper output.
@@ -750,7 +736,6 @@ class WebScraper:
         json_file_path: str = self.create_file_path(plyr_dir, f'{plyr_dir}/data.json')
         img_path: str = self.create_file_path(img_dir, f'{self.plyr_name.replace(" ", "_")}_0.png')
         self.write_to_file(json_file_path, img_path)
-        return
 
     def prep_dir(self) -> list[str]:
         """Prepares the directories for saving json file and image data.
@@ -792,7 +777,6 @@ class WebScraper:
             urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
         else:
             raise ValueError from None
-        return
 
     def calc_timestep(self) -> float:
         """Calculates the time elapsed.
@@ -851,7 +835,6 @@ class WebScraper:
         print(f'{self.plyr_name} just scraped.')
         print(f'{self.plyr_count} players of {self.total_plyrs} scraped in {round(prog_stats[1] / 60)} minutes.')
         print(f'{100 * prog_stats[0]:.2f}% complete. Estimated {round(prog_stats[2] / 60)} minutes remaining.')
-        return
 
     def quit(self) -> None:
         """Quits the webdriver.
@@ -861,7 +844,6 @@ class WebScraper:
 
         """
         self.driver.quit()
-        return
 
     def page_finished_msg(self) -> None:
         """Prints a page completed status message.
@@ -872,7 +854,6 @@ class WebScraper:
         """
         line_brk = '#########################################'
         print(f'{line_brk}\nPage {self.page_counter} of {self.total_pages} finished.\n{line_brk}')
-        return
 
 
 if __name__ == "__main__":

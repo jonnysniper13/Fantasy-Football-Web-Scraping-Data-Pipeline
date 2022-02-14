@@ -45,7 +45,7 @@ class WebScraper:
 
         This method creates all class variables, initiates the method
         to create a target folder for exporting data to, and initiates the
-        main scraper method.
+        main scraper method and attributes.
 
         Args:
             url: URL for website to be scraped.
@@ -72,6 +72,7 @@ class WebScraper:
             plyr_name: Name of player being scraped.
             plyr_dict: Dictionary of data for that player.
             tags: HTML XPATH and tag names to be used by Selenium.
+            self.driver: Initiates the Chromedriver element.
 
         Returns:
             None
@@ -92,6 +93,7 @@ class WebScraper:
         self.plyr_dict: dict = {}
         self.plyr_name: str = ""
         self.tags: int = self.get_html_tags()
+        self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
         self.cycle_scraper()
 
     def make_folder(self, *args: list[str]) -> str:
@@ -210,9 +212,8 @@ class WebScraper:
     def scrape(self) -> None:
         """Function to initiate the web scraper.
 
-        This the main web scraper method. It initiates the Chromedriver
-        method and then launches the driver to the target website. It then
-        handles the gdpr popup, logs in to the website and then navigates
+        This the main web scraper method. It launches the driver to the target website.
+        It then handles the gdpr popup, logs in to the website and then navigates
         to the required part of the website.
         If this is the first iteration it counts the total number of
         players and pages that need to be scraped, else it navigates the website
@@ -220,14 +221,10 @@ class WebScraper:
         It then inititates the player scraper for all players on the
         selected page, quits the Chromedriver and increases the page counter by 1.
 
-        Attributes:
-            self.driver: Initiates the Chromedriver element.
-
         Returns:
             None
 
         """
-        self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
         self.driver.get(self.url)
         self.gdpr_consent()
         self.login()
@@ -761,7 +758,7 @@ class WebScraper:
 
         This method saves the player dictionary to a json file in the
         player's target folder. It also saves the player's image using
-        urllib.
+        urllib provided the path starts with 'http'.
 
         Args:
             json_file_path: Dir path for json file to be saved.
@@ -775,8 +772,6 @@ class WebScraper:
             json.dump(self.plyr_dict, json_file)
         if self.plyr_dict['Image SRC'].lower().startswith('http'):
             urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
-        else:
-            raise ValueError from None
 
     def calc_timestep(self) -> float:
         """Calculates the time elapsed.

@@ -1,4 +1,4 @@
-'''
+"""
 This module scrapes player data from the Premier League fantasy football website.
 
 The module contains one class in which all methods are contained and operated
@@ -12,7 +12,7 @@ all players have been scraped.
 
 The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()
-'''
+"""
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -51,7 +51,8 @@ class WebScraper:
             url: URL for website to be scraped.
             usr_name: Optional user input for user name.
             pword: Optional user input for password.
-            sample_mode: Optional mode for testing the script by scraping one player only.
+            sample_mode: Optional mode for testing the script by scraping one player
+                only.
 
         Attributes:
             sample_mode: Mode for collecting one player sample for testing.
@@ -488,7 +489,8 @@ class WebScraper:
             self.click_next(page_buttons)
         return
 
-    def click_next(self, page_buttons: list[WebElement]) -> None:
+    @staticmethod
+    def click_next(page_buttons: list[WebElement]) -> None:
         """Method that clicks the next page button.
 
         This method will click the 'Next Page' button, located within
@@ -557,7 +559,6 @@ class WebScraper:
             self.get_plyr_attr(self.tags['PlyrDetailSections'][k], k)
         for k, v in self.tags['MatchDataKeyList'].items():
             self.get_match_data(k, v)
-        return
 
     def get_plyr_details(self) -> None:
         """Gets players details.
@@ -587,7 +588,6 @@ class WebScraper:
             else:
                 pass
         self.plyr_dict = {'Name': self.plyr_name, 'UUID': str(uuid.uuid4()), 'Position': plyr_pos, 'Team': plyr_team}
-        return
 
     def get_plyr_status(self):
         """Gets player fitness status.
@@ -609,7 +609,6 @@ class WebScraper:
         except NoSuchElementException:
             status: str = '100% Fit'
         self.plyr_dict['Status'] = status
-        return
 
     def get_plyr_img_src(self):
         """Gets player image src.
@@ -630,7 +629,6 @@ class WebScraper:
         img: WebElement = img_parent.find_element(By.XPATH, './/*')
         img_src: str = img.get_attribute('src')
         self.plyr_dict['Image SRC'] = img_src
-        return
 
     def get_plyr_attr(self, key_list: dict, k: str):
         """Gets player other attributes.
@@ -667,7 +665,6 @@ class WebScraper:
                     self.plyr_dict[attr_name] = attr_value
                 attr_name = ''
                 attr_value = ''
-        return
 
     def get_match_data(self, match_data_type: str, match_data_tag: str) -> None:
         """Scrapes player matches.
@@ -727,7 +724,7 @@ class WebScraper:
             if attr.tag_name == 'tr':
                 self.plyr_dict[match_data_type].append([])
                 i += 1
-            elif attr.tag_name == 'th' or attr.tag_name == 'td':
+            elif attr.tag_name in ['th', 'td']:
                 self.plyr_dict[match_data_type][i - 1].append(attr.text)
         return
 
@@ -791,7 +788,10 @@ class WebScraper:
         """
         with open(json_file_path, 'x') as json_file:
             json.dump(self.plyr_dict, json_file)
-        urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
+        if self.plyr_dict['Image SRC'].lower().startswith('http'):
+            urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_path)
+        else:
+            raise ValueError from None
         return
 
     def calc_timestep(self) -> float:

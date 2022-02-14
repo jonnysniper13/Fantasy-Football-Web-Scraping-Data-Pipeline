@@ -822,7 +822,8 @@ class WebScraper:
             None
 
         """
-        if len(os.listdir(os.path.dirname(img_file_path))) == 0 and self.plyr_dict['Image SRC'].lower().startswith('http'):
+        if (len(os.listdir(os.path.dirname(img_file_path))) == 0 and
+                self.plyr_dict['Image SRC'].lower().startswith('http')):
             urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_file_path)
 
     def calc_timestep(self) -> float:

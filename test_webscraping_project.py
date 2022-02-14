@@ -56,8 +56,7 @@ class WebScraperTestCase(unittest.TestCase):
         self.assertDictEqual(exp_value, act_value)
 
     def test_plyr_attr_type(self):
-        """Tests player's key attributes by comparing dictionaries of
-        data types."""
+        """Tests player's key attributes by comparing dictionaries of data types."""
         exp_value = [type(v) for _, v in self.test_answers['Sample Player Stats'].items()]
         key_list = list(self.test_answers['Sample Player Stats'].keys())
         act_value = [type(v) for k, v in self.sample_plyr.items() if k in key_list]

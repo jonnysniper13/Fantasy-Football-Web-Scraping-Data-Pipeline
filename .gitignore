@@ -3,3 +3,6 @@ raw_data
 
 # Ignore _dev folder
 _dev
+
+# Ignore __pycache__
+__pycache__

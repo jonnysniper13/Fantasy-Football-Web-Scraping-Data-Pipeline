@@ -10,8 +10,9 @@ class WebScraperTestCase(unittest.TestCase):
     Scraped data types are also compared.
     """
 
-    def __init__(self) -> None:
-        """Sets up the answers for all of the test cases.
+    @classmethod
+    def setUpClass(self) -> None:
+        """Sets up the answers for the test cases.
 
         This function supplies a manually inputted dictionary of scraped
         data for which newly scraped data can be compared to. Only one

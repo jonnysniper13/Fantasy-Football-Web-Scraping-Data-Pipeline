@@ -30,6 +30,7 @@ import uuid
 import urllib.request
 from typing import Optional, Union
 import getpass
+import boto3
 
 
 class WebScraper:
@@ -71,7 +72,8 @@ class WebScraper:
             plyr_dir: Directory path for player data to be saved.
             img_dir: Directory path for player image to be saved.
             tags: HTML XPATH and tag names to be used by Selenium.
-            self.driver: Initiates the Chromedriver element.
+            driver: Initiates the Chromedriver element.
+            s3_client: Initiates the boto3 client.
 
         Returns:
             None
@@ -93,6 +95,7 @@ class WebScraper:
         self.img_dir: str = ''
         self.tags: int = self.get_html_tags()
         self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
+        self.s3_client = boto3.client('s3')
         self.cycle_scraper()
 
     @staticmethod
@@ -531,7 +534,7 @@ class WebScraper:
                 plyr_team: str = attr.text
             else:
                 pass
-        id: str = ' '.join([plyr_name, plyr_pos, plyr_team]).replace(' ', '-')
+        id: str = ' '.join([plyr_team, plyr_pos, plyr_name]).replace(' ', '-')
         self.plyr_dict = {
             'Name': plyr_name,
             'Unique ID': id,
@@ -791,6 +794,9 @@ class WebScraper:
         img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["Unique ID"]}_0.png')
         self.write_json(json_file_path)
         self.write_img(img_file_path)
+        s3_plyr_path = f'raw_data/{self.plyr_dict["Unique ID"]}'
+        self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.timestamp}_data.json')
+        self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
         """Saves player dictionary in player folder.

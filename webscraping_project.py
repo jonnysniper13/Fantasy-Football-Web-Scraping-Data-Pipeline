@@ -550,7 +550,7 @@ class WebScraper:
 
         This method checks if a player has recently been scraped
         by checking the appropiate key in the data output dictionary.
-        If a file exists but it was scraped today and only today,
+        If a file exists but it was scraped in the last day,
         the player will not be scraped again. For all other
         permutations, the file will be deleted and player scraped.
 
@@ -572,7 +572,7 @@ class WebScraper:
                 old_plyr_dict: dict = json.load(f)
             last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
             delta: int = (datetime.now() - last_scraped).days
-            if delta > 0:
+            if delta > 1:
                 os.remove(json_file)
                 return False
             return True

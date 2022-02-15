@@ -567,10 +567,14 @@ class WebScraper:
         """
         self.prep_dir()
         try:
-            json_file: str = os.path.join(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
+            json_file: str = os.path.join(
+                                            self.plyr_dir,
+                                            f'{self.plyr_dict["Unique ID"]}_data.json')
             with open(json_file) as f:
                 old_plyr_dict: dict = json.load(f)
-            last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
+            last_scraped: datetime = datetime.strptime(
+                                                        old_plyr_dict['Last Scraped'][:10],
+                                                        '%Y-%m-%d')
             delta: int = (datetime.now() - last_scraped).days
             if delta > 0:
                 os.remove(json_file)
@@ -796,13 +800,23 @@ class WebScraper:
             None
 
         """
-        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
-        img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["Unique ID"]}_0.png')
+        json_file_path: str = self.create_file_path(
+                                                    self.plyr_dir,
+                                                    f'{self.plyr_dict["Unique ID"]}_data.json')
+        img_file_path: str = self.create_file_path(
+                                                    self.img_dir,
+                                                    f'{self.plyr_dict["Unique ID"]}_0.png')
         self.write_json(json_file_path)
         self.write_img(img_file_path)
         s3_plyr_path = f'raw_data/{self.plyr_dict["Unique ID"]}'
-        self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
-        self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
+        self.s3_client.upload_file(
+                                    json_file_path,
+                                    'fplplayerdatabucket',
+                                    f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
+        self.s3_client.upload_file(
+                                    img_file_path,
+                                    'fplplayerdatabucket',
+                                    f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
         """Saves player dictionary in player folder.
@@ -925,7 +939,10 @@ class WebScraper:
         txt_path = os.path.join(self.script_dir, 'raw_data', 'timestamp.txt')
         with open(txt_path, 'w') as f:
             f.write(f'Scraper last ran at: {self.timestamp}')
-        self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/timestamp.txt')
+        self.s3_client.upload_file(
+                                    txt_path,
+                                    'fplplayerdatabucket',
+                                    'raw_data/timestamp.txt')
 
 
 if __name__ == "__main__":

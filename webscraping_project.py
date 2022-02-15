@@ -84,7 +84,7 @@ class WebScraper:
         self.url: str = url
         self.tic: float = time.perf_counter()
         self.script_dir: str = os.path.dirname(__file__)
-        self.timestamp: str = f'{datetime.now().replace(microsecond=0).isoformat()}'
+        self.timestamp: datetime = datetime.now().replace(microsecond=0).isoformat()
         self.page_counter: int = 1
         self.chk_new_page: bool = True
         self.total_pages: int = 0
@@ -152,7 +152,8 @@ class WebScraper:
         The function will initiate the scraper method if the page counter
         does not exceed the number of pages on the website. Only initiates
         the scraper if this is true. After executing the scraper an
-        enforced time delay is passed.
+        enforced time delay is passed on each iteration. After completing the
+        scraper, a timestamp txt file is written.
 
         Returns:
             None
@@ -161,6 +162,7 @@ class WebScraper:
         while self.chk_new_page:
             self.scrape()
             time.sleep(10)
+        self.write_timestamp()
 
     def scrape(self) -> None:
         """Function to initiate the web scraper.
@@ -540,21 +542,23 @@ class WebScraper:
             'Unique ID': id,
             'UUID': str(uuid.uuid4()),
             'Position': plyr_pos,
-            'Team': plyr_team}
+            'Team': plyr_team,
+            'Last Scraped': self.timestamp}
 
     def check_plyr_scraped(self) -> bool:
         """This method checks if a player has recently been scraped.
 
         This method checks if a player has recently been scraped
-        by checking any json files in the data output directory.
-        If a file exists and it was scraped within the last week,
+        by checking the appropiate key in the data output dictionary.
+        If a file exists but it was scraped today and only today,
         the player will not be scraped again. For all other
         permutations, the file will be deleted and player scraped.
 
         Attributes:
+            json_file = Full path for player json file.
             old_plyr_dict = Previously scraped dictionary of player data.
-            date_scraped = Date player was last scraped.
-            delta = Delta between now and the date the player was last
+            last_scraped = Date player was last scraped.
+            delta = Delta between today and the date the player was last
                 scraped.
 
         Returns:
@@ -562,18 +566,18 @@ class WebScraper:
 
         """
         self.prep_dir()
-        for file in os.listdir(self.plyr_dir):
-            if file[-5:] == '.json':
-                full_file = os.path.join(self.plyr_dir, file)
-                with open(full_file) as json_file:
-                    old_plyr_dict: dict = json.load(json_file)
-                date_scraped: datetime = datetime.strptime(file[:10], '%Y-%m-%d')
-                delta: int = (datetime.now() - date_scraped).days
-                if old_plyr_dict['Unique ID'] == self.plyr_dict['Unique ID'] and delta < 7:
-                    self.plyr_dict = old_plyr_dict
-                    return True
-                os.remove(full_file)
-        return False
+        try:
+            json_file: str = os.path.join(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
+            with open(json_file) as f:
+                old_plyr_dict: dict = json.load(f)
+            last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
+            delta: int = (datetime.now() - last_scraped).days
+            if delta > 0:
+                os.remove(json_file)
+                return False
+            return True
+        except FileNotFoundError:
+            return False
 
     def prep_dir(self) -> None:
         """Prepares the directories for saving json file and image data.
@@ -780,22 +784,24 @@ class WebScraper:
 
         This method calls creates full file paths that include the
         file name, to support further exporting of data. It then calls
-        the method in which data is exported to file.
+        the method in which data is exported to file. All data is then
+        uploaded to an s3 bucket.
 
         Attributes:
             json_file_path: Dir path for json file to be saved.
             img_file_path: Dir path for image to be saved.
+            s3_plyr_path: Dir path on s3 bucket.
 
         Returns:
             None
 
         """
-        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.timestamp}_data.json')
+        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
         img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["Unique ID"]}_0.png')
         self.write_json(json_file_path)
         self.write_img(img_file_path)
         s3_plyr_path = f'raw_data/{self.plyr_dict["Unique ID"]}'
-        self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.timestamp}_data.json')
+        self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
         self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
@@ -908,6 +914,18 @@ class WebScraper:
         """
         line_brk = '#########################################'
         print(f'{line_brk}\nPage {self.page_counter} of {self.total_pages} finished.\n{line_brk}')
+
+    def write_timestamp(self) -> None:
+        """Writes a txt file in the raw data folder containing the timestamp.
+
+        Returns:
+            None
+
+        """
+        txt_path = os.path.join(self.script_dir, 'raw_data', 'timestamp.txt')
+        with open(txt_path, 'w') as f:
+            f.write(f'Scraper last ran at: {self.timestamp}')
+        self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/timestamp.txt')
 
 
 if __name__ == "__main__":

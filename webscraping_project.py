@@ -266,7 +266,7 @@ class WebScraper:
         try:
             if pause:
                 time.sleep(1)
-                WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.XPATH, f'//*[@{tag}]')))
+                WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, f'//*[@{tag}]')))
             if multi:
                 obj: list[WebElement] = self.driver.find_elements(By.XPATH, f"//*[@{tag}]")
             else:
@@ -297,7 +297,7 @@ class WebScraper:
         """
         try:
             popup_name.click()
-            WebDriverWait(self.driver, 30).until(EC.invisibility_of_element_located((popup_name)))
+            WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((popup_name)))
             time.sleep(1)
         except TimeoutException:
             print("Loading took too much time!")

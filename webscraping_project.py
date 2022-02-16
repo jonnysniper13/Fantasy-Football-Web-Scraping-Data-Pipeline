@@ -147,9 +147,9 @@ class WebScraper:
         return tags
 
     def cycle_scraper(self) -> None:
-        """Function to initiate the scraper method if the current page exists.
+        """Function to initiate the scraper method if the next page exists.
 
-        The function will initiate the scraper method if the page counter
+        The function will re-initiate the scraper method if the page counter
         does not exceed the number of pages on the website. Only initiates
         the scraper if this is true. After executing the scraper an
         enforced time delay is passed on each iteration. After completing the
@@ -161,7 +161,7 @@ class WebScraper:
         """
         while self.chk_new_page:
             self.scrape()
-            time.sleep(10)
+            time.sleep(30)
         self.write_timestamp()
 
     def scrape(self) -> None:
@@ -437,9 +437,7 @@ class WebScraper:
         """Method that clicks the next page button.
 
         This method will click the 'Next Page' button, located within
-        a WebElement list. If a new page is clicked, the next page
-        boolean checker is set to True. A time delay is enforced between
-        each page.
+        a WebElement list. A time delay is enforced after a new page is clicked.
 
         Args:
             page_buttons: List of WebElements for page navigator buttons.
@@ -897,13 +895,15 @@ class WebScraper:
         print(f'{100 * prog_stats[0]:.2f}% complete. Estimated {round(prog_stats[2] / 60)} minutes remaining.')
 
     def quit(self) -> None:
-        """Quits the webdriver.
+        """Quits the webdriver and restarts it if more pages are to be scraped.
 
         Returns:
             None
 
         """
         self.driver.quit()
+        if self.page_counter < self.total_pages:
+            self.driver = webdriver.Chrome(options=self.setup_options())
 
     def page_finished_msg(self) -> None:
         """Prints a page completed status message.

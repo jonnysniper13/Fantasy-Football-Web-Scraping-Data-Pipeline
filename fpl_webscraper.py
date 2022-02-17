@@ -292,10 +292,7 @@ class FPLWebScraper:
             None
 
         """
-        try:
-            plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(self.html_inputs['PlyrDetails'], './*', ['h2', 'span', 'div'])
-        except ValueError:
-            plyr_name, plyr_pos, plyr_team = ['Error', 'Error', 'Error']
+        plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(self.html_inputs['PlyrDetails'], './*', ['h2', 'span', 'div'])
         id: str = ' '.join([plyr_team, plyr_pos, plyr_name]).replace(' ', '-')
         self.plyr_dict = {
             'Name': plyr_name,

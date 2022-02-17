@@ -9,3 +9,6 @@ __pycache__
 
 # Ignore credentials file
 cred.py
+
+#Ignore Dockerfile
+Dockerfile

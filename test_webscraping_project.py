@@ -1,8 +1,8 @@
 import unittest
-from webscraping_project import WebScraper
+from fpl_webscraper import FPLWebScraper
 
 
-class WebScraperTestCase(unittest.TestCase):
+class FPLWebScraperTestCase(unittest.TestCase):
     """This Class carries out units tests on the WebScraper script.
 
     The WebScraper script is tested by comparing scraped data to that
@@ -22,7 +22,7 @@ class WebScraperTestCase(unittest.TestCase):
 
         Manual test cases last updated on 14/02/2022.
         """
-        cls.sample = WebScraper('https://fantasy.premierleague.com/', sample_mode=True)
+        cls.sample = FPLWebScraper('https://fantasy.premierleague.com/', sample_mode=True)
         cls.sample_plyr = cls.sample.plyr_dict
         cls.sample_total_plyrs = cls.sample.total_plyrs
         cls.sample_total_pages = cls.sample.total_pages
@@ -36,7 +36,7 @@ class WebScraperTestCase(unittest.TestCase):
                 "GW25": "7pts",
                 "Total": "109pts",
                 "Price": "£6.1",
-                "TSB": "12.3%"
+                "TSB": "12.2%"
                 },
             "Sample Player Img": "https://resources.premierleague.com/premierleague/photos/players/110x140/p121160.png",
             "2021/22": ["1", "TOT (A) 1 - 0", "2", "90", "0", "0", "0", "1", "0", "0", "0", "0", "0", "1", "0", "10", "6.6", "0.0", "0.0", "0.7", "0", "683423", "£6.0"],

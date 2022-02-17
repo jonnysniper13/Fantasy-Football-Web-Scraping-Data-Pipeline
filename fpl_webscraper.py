@@ -399,7 +399,7 @@ class FPLWebScraper:
                 old_plyr_dict: dict = json.load(f)
             last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
             delta: int = (datetime.now() - last_scraped).days
-            if delta > 1:
+            if delta >= 7:
                 os.remove(json_file)
                 return False
             return True

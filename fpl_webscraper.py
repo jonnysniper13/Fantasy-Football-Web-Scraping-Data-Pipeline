@@ -292,7 +292,10 @@ class FPLWebScraper:
             None
 
         """
-        plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(self.html_inputs['PlyrDetails'], './*', ['h2', 'span', 'div'])
+        try:
+            plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(self.html_inputs['PlyrDetails'], './*', ['h2', 'span', 'div'])
+        except ValueError:
+            plyr_name, plyr_pos, plyr_team = ['Error', 'Error', 'Error']
         id: str = ' '.join([plyr_team, plyr_pos, plyr_name]).replace(' ', '-')
         self.plyr_dict = {
             'Name': plyr_name,
@@ -343,7 +346,7 @@ class FPLWebScraper:
 
         """
         for k in self.html_inputs['PlyrDetailSections']:
-            data_dict = self.ws.get_from_fields(self.html_inputs['PlyrDetailSections'][k], k, self.plyr_dict)
+            data_dict = self.ws.get_from_fields(self.html_inputs['PlyrDetailSections'][k], k)
             self.plyr_dict.update(data_dict)
 
     def get_plyr_match_data(self):

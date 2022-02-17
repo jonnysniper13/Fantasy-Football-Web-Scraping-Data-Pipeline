@@ -344,15 +344,13 @@ else:
                         output_list.append(c.text)
             return output_list
 
-        def get_from_fields(self, key_list: dict, k: str, data_dict: Optional[dict] = {}) -> dict:
+        def get_from_fields(self, key_list: dict) -> dict:
             """Gets data from various fields.
 
             This method collects data from numerous specified fields.
 
             Args:
                 key_list: Dictionary of keys to cycle through.
-                k: Key iterable.
-                data_dict: Dictionary to append data to.
 
             Attributes:
                 parent: Parent web element of player.
@@ -400,7 +398,8 @@ else:
                 data_list = []
             return data_list
 
-        def carve_table(self, children: WebElement) -> list:
+        @staticmethod
+        def carve_table(children: WebElement) -> list:
             """Scrapes tabular data.
 
             This method scrapes tabular data from a chosen location by

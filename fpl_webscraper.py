@@ -341,12 +341,15 @@ class FPLWebScraper:
         This method gets the form data for the player and appends it to the
         player dictionary.
 
+        Attributes:
+            data_dict: Dictionary of data to be returned.
+
         Returns:
             None
 
         """
         for k in self.html_inputs['PlyrDetailSections']:
-            data_dict = self.ws.get_from_fields(self.html_inputs['PlyrDetailSections'][k], k)
+            data_dict = self.ws.get_from_fields(self.html_inputs['PlyrDetailSections'][k])
             self.plyr_dict.update(data_dict)
 
     def get_plyr_match_data(self):

@@ -80,7 +80,8 @@ class FPLWebScraper:
         self.sample_mode: bool = sample_mode
         self.url: str = url
         self.tic: float = time.perf_counter()
-        self.script_dir: str = os.path.dirname(__file__)
+        self.project_dir: str = os.path.dirname(__file__)
+        print(self.project_dir)
         self.timestamp: datetime = datetime.now().replace(microsecond=0).isoformat()
         self.page_counter: int = 1
         self.chk_new_page: bool = True
@@ -396,7 +397,7 @@ class FPLWebScraper:
             dir_path
 
         """
-        dir_path = self.create_file_path(self.script_dir, *args)
+        dir_path = self.create_file_path(self.project_dir, *args)
         try:
             os.makedirs(dir_path)
             return dir_path
@@ -558,7 +559,7 @@ class FPLWebScraper:
             None
 
         """
-        txt_path = os.path.join(self.script_dir, 'raw_data', 'timestamp.txt')
+        txt_path = os.path.join(self.project_dir, 'raw_data', 'timestamp.txt')
         with open(txt_path, 'w') as f:
             f.write(f'Scraper last ran at: {self.timestamp}')
         self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/timestamp.txt')

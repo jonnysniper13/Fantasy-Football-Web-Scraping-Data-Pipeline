@@ -1,8 +1,4 @@
-# Ignore raw_data folder
 raw_data
-
-# Ignore __pycache__
 __pycache__
-
-# Ignore credentials file
 cred.py
+.deepsource.toml

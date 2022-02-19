@@ -16,6 +16,7 @@ scraped_data = WebScraper()
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.common.exceptions import NoSuchElementException
 import json
 import time
 from datetime import datetime
@@ -276,7 +277,6 @@ class FPLWebScraper:
             self.get_plyr_img_data()
             self.get_plyr_form_data()
             self.get_plyr_match_data()
-            print(self.plyr_dict)
             self.process_output()
 
     def create_plyr_dict(self) -> None:
@@ -364,13 +364,16 @@ class FPLWebScraper:
 
         """
         for k, v in self.html_inputs['MatchDataKeyList'].items():
-            if k == 'Fixtures':
-                self.ws.navigate(self.html_inputs['FixPage'])
-                child: WebElement = self.ws.find_xpaths(self.html_inputs[v])
-            else:
-                parent: WebElement = self.ws.find_xpaths(self.html_inputs[v])
-                child: WebElement = parent.find_element(By.XPATH, './/table')
-            self.plyr_dict[k] = self.ws.get_from_table(child)
+            try:
+                if k == 'Fixtures':
+                    self.ws.navigate(self.html_inputs['FixPage'])
+                    child: WebElement = self.ws.find_xpaths(self.html_inputs[v])
+                else:
+                    parent: WebElement = self.ws.find_xpaths(self.html_inputs[v])
+                    child: WebElement = parent.find_element(By.XPATH, './/table')
+                self.plyr_dict[k] = self.ws.get_from_table(child)
+            except NoSuchElementException:
+                self.plyr_dict[k] = 'No data'
 
     def check_plyr_scraped(self) -> bool:
         """This method checks if a player has recently been scraped.

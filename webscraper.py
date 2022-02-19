@@ -1,10 +1,9 @@
-#TODO check through doc strings and remove player etc
 """
 This module scrapes data from a specified website.
 
 The module contains one class in which all methods are contained and operated
 out of. The class is also initiated when called in the main block. Common scraper
-methods are containing within 
+methods are containing within this class to be call from other scripts.
 
 The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()
@@ -25,8 +24,7 @@ if __name__ == "__main__":
     pass
 else:
     class WebScraper:
-        """This Class scrapes player data from the Premier League fantasy
-        football website.
+        """This Class scrapes data from a specified website.
 
         See Module description and __init__ method for description of this
         Class.
@@ -230,7 +228,7 @@ else:
                 return None
 
         def goto_page(self, next_page_xpath: str, desired_page: int) -> None:
-            """Method that moves player list to required page.
+            """Method that moves list to required page.
 
             This method handles the method for clicking the 'Next Page'
             button to ensure it is called the required number of times (i.e.
@@ -244,7 +242,7 @@ else:
 
             Attributes:
                 page_buttons: Chromedriver WebElement for the
-                    'Next Page' button on the player list.
+                    'Next Page' button on the list.
 
             Returns:
                 None
@@ -292,7 +290,7 @@ else:
             return data_list
 
         def open_popup(self, target: WebElement, xpath: str) -> None:
-            """Cycles through player page and calls scraping method and output.
+            """Cycles through page and calls scraping method and output.
 
             This method will open a popup for a given target and then return the
             WebElement for the button to close the popup.
@@ -302,7 +300,7 @@ else:
                 xpath: XPATH element to be found.
 
             Attributes:
-                popup: Player popup element.
+                popup: Popup element.
 
             Returns:
                 None
@@ -349,8 +347,8 @@ else:
                 key_list: Dictionary of keys to cycle through.
 
             Attributes:
-                parent: Parent web element of player.
-                children: Child web element of player.
+                parent: Parent web element.
+                children: Child web element.
                 name: Name of attribute to be scraped.
                 data_dict: Dictionary of data to be returned.
 
@@ -377,7 +375,7 @@ else:
 
             Args:
                 parent: WebElement containing the tables that are to be scraped.
-                table_name: Type of match data to be scraped.
+                table_name: Name of table to be scraped.
 
             Attributes:
                 children: WebElement of the table.
@@ -404,7 +402,7 @@ else:
 
             Args:
                 children: List of applicable WebElements.
-                table_name: Type of match data to be scraped.
+                table_name: Name of table to be scraped.
 
             Attributes:
                 i: Iterator variable used to handle list entries.

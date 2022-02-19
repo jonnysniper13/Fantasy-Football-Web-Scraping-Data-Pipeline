@@ -332,10 +332,10 @@ else:
             parent: WebElement = self.find_xpaths(xpath_parent)
             children: list[WebElement] = parent.find_elements(By.XPATH, xpath_child)
             output_list: list = [None] * len(tag_list)
-            for i in range(len(tag_list)):
+            for index, element in enumerate(tag_list):
                 for c in children:
-                    if c.tag_name == tag_list[i]:
-                        output_list[i] = c.text
+                    if c.tag_name == element:
+                        output_list[index] = c.text
             return output_list
 
         def get_from_fields(self, key_list: dict) -> dict:

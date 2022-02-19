@@ -28,6 +28,7 @@ from typing import Optional, List
 import getpass
 import boto3
 from webscraper import WebScraper
+from xpaths import xpaths
 
 
 class FPLWebScraper:
@@ -90,59 +91,8 @@ class FPLWebScraper:
         self.plyr_dict: dict = {}
         self.plyr_dir: str = ''
         self.img_dir: str = ''
-        self.html_inputs: int = self.get_html_inputs()
         self.s3_client = boto3.client('s3')
         self.cycle_scraper()
-
-    def get_html_inputs(self) -> dict:
-        """Dictionary of XPATH tags.
-
-        Attributes:
-            tags: XPATH element identifiers to be used throughout class.
-
-        Returns:
-            tags
-
-        """
-        tags: dict = {
-            'CookieButton': 'class="_2hTJ5th4dIYlveipSEMYHH BfdVlAo_cgSVjDUegen0F js-accept-all-close"',
-            'Credentials': {
-                'Username': self.__get_credentials()[0],
-                'Username xpath': 'type="email"',
-                'Password': self.__get_credentials()[1],
-                'Password xpath': 'type="password"',
-                'Login xpath': 'type="submit"'},
-            'TransferPage': 'href="/transfers"',
-            'PlyrCount': 'class="ElementList__ElementsShown-j2itt6-1 dYWYXj"',
-            'PlyrCountChild': './/strong',
-            'PageCount': 'class="sc-bdnxRM sc-gtsrHT eVZJvz gfuSqG"',
-            'PageCountChild': './*[@role="status"]',
-            'PlyrList': 'class="ElementDialogButton__StyledElementDialogButton-sc-1vrzlgb-0 hYsBeR"',
-            'PlyrPopup': 'class="Dialog__Button-sc-5bogmv-2 ejzwPB"',
-            'PlyrDetailSections': {
-                'plyr_form': {
-                    'xpath': 'class="ElementDialog__StatList-gmefnd-6 gRiDnT"',
-                    'heading': 'h3',
-                    'heading_value': 'div'},
-                'plyr_ICT': {
-                    'xpath': 'class="ElementDialog__ICTBody-gmefnd-12 cYozoC"',
-                    'heading': 'h3',
-                    'heading_value': 'strong'}
-                    },
-            'NextPageButton': 'class="PaginatorButton__Button-xqlaki-0 cDdTXr"',
-            'PlyrDetails': 'class="sc-bdnxRM cqTHxz"',
-            'PlyrStatus': 'type="error"',
-            'PlyrImg': 'class="sc-bdnxRM bCIGtR"',
-            'MatchDataKeyList': {
-                '2021/22': 'PlyrMatches',
-                'Previous Seasons': 'PrevSeasons',
-                'Fixtures': 'FixList'},
-            'PlyrMatches': 'class="ElementDialog__ScrollTable-gmefnd-15 bMDIkP ism-overflow-scroll"',
-            'PrevSeasons': 'class="sc-bdnxRM fDjTdD"',
-            'FixPage': 'href="#fixtures"',
-            'FixList': 'class="Table-ziussd-1 fHBHIK"'
-            }
-        return tags
 
     def cycle_scraper(self) -> None:
         """Function to initiate the scraper method if the next page exists.
@@ -177,6 +127,7 @@ class FPLWebScraper:
         and increases the page counter by 1.
 
         Attributes:
+            credentials: Login credentials for webpage.
             total_plyrs: Total number of players in string format.
             total_pages: Total number of pages in string format.
 
@@ -185,15 +136,16 @@ class FPLWebScraper:
 
         """
         self.ws.driver.get(self.url)
-        self.ws.gdpr_consent(self.html_inputs['CookieButton'])
-        self.ws.login(self.html_inputs['Credentials'])
-        self.ws.navigate(self.html_inputs['TransferPage'])
+        self.ws.gdpr_consent(xpaths['CookieButton'])
+        credentials: list[str] = self.__get_credentials()
+        self.ws.login(xpaths['Credentials'], credentials)
+        self.ws.navigate(xpaths['TransferPage'])
         if self.page_counter == 1:
-            total_plyrs: str = self.ws.retrieve_attr(self.html_inputs['PlyrCount'], self.html_inputs['PlyrCountChild'])
+            total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
             self.total_plyrs = int(total_plyrs)
-            total_pages: str = self.ws.retrieve_attr(self.html_inputs['PageCount'], self.html_inputs['PageCountChild'])
+            total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
             self.total_pages = int(total_pages.split()[-1])
-        self.ws.goto_page(self.html_inputs['NextPageButton'], self.page_counter)
+        self.ws.goto_page(xpaths['NextPageButton'], self.page_counter)
         self.cycle_thru_plyr_list()
         if not self.sample_mode:
             if self.total_pages == self.page_counter:
@@ -243,10 +195,10 @@ class FPLWebScraper:
             None
 
         """
-        plyr_list = self.ws.find_list(self.html_inputs['PlyrList'])
+        plyr_list = self.ws.find_list(xpaths['PlyrList'])
         for plyr in plyr_list:
             self.plyr = plyr
-            popup = self.ws.open_popup(self.plyr, self.html_inputs['PlyrPopup'])
+            popup = self.ws.open_popup(self.plyr, xpaths['PlyrPopup'])
             self.get_plyr_stats()
             self.plyr_count += 1
             self.ws.close_popup(popup)
@@ -292,7 +244,7 @@ class FPLWebScraper:
             None
 
         """
-        plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(self.html_inputs['PlyrDetails'], './*', ['h2', 'span', 'div'])
+        plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(xpaths['PlyrDetails'], './*', ['h2', 'span', 'div'])
         id: str = ' '.join([plyr_team, plyr_pos, plyr_name]).replace(' ', '-')
         self.plyr_dict = {
             'Name': plyr_name,
@@ -315,7 +267,7 @@ class FPLWebScraper:
             None
 
         """
-        status: str = self.ws.retrieve_attr(self.html_inputs['PlyrStatus'])
+        status: str = self.ws.retrieve_attr(xpaths['PlyrStatus'])
         if status is None:
             status: str = '100% Fit'
         self.plyr_dict['Status'] = status
@@ -330,7 +282,7 @@ class FPLWebScraper:
             None
 
         """
-        self.plyr_dict['Image SRC'] = self.ws.retrieve_attr(self.html_inputs['PlyrImg'], './/*', 'src')
+        self.plyr_dict['Image SRC'] = self.ws.retrieve_attr(xpaths['PlyrImg'], './/*', 'src')
 
     def get_plyr_form_data(self) -> None:
         """Gets player form data.
@@ -345,8 +297,8 @@ class FPLWebScraper:
             None
 
         """
-        for k in self.html_inputs['PlyrDetailSections']:
-            data_dict = self.ws.get_from_fields(self.html_inputs['PlyrDetailSections'][k])
+        for k in xpaths['PlyrDetailSections']:
+            data_dict = self.ws.get_from_fields(xpaths['PlyrDetailSections'][k])
             self.plyr_dict.update(data_dict)
 
     def get_plyr_match_data(self):
@@ -363,13 +315,13 @@ class FPLWebScraper:
             None
 
         """
-        for k, v in self.html_inputs['MatchDataKeyList'].items():
+        for k, v in xpaths['MatchDataKeyList'].items():
             try:
                 if k == 'Fixtures':
-                    self.ws.navigate(self.html_inputs['FixPage'])
-                    child: WebElement = self.ws.find_xpaths(self.html_inputs[v])
+                    self.ws.navigate(xpaths['FixPage'])
+                    child: WebElement = self.ws.find_xpaths(xpaths[v])
                 else:
-                    parent: WebElement = self.ws.find_xpaths(self.html_inputs[v])
+                    parent: WebElement = self.ws.find_xpaths(xpaths[v])
                     child: WebElement = parent.find_element(By.XPATH, './/table')
                 self.plyr_dict[k] = self.ws.get_from_table(child)
             except NoSuchElementException:
@@ -494,8 +446,8 @@ class FPLWebScraper:
         self.write_json(json_file_path)
         self.write_img(img_file_path)
         s3_plyr_path = f'raw_data/{self.plyr_dict["Unique ID"]}'
-        self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
-        self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
+        #self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
+        #self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
         """Saves player dictionary in player folder.

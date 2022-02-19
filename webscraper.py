@@ -64,7 +64,7 @@ else:
             options = Options()
             options.add_argument('window-size=1920x1080')
             options.add_argument('--no-sandbox')
-            options.add_argument('--headless')
+            #options.add_argument('--headless')
             options.add_argument('--disable-dev-shm-usage')
             return options
 
@@ -154,7 +154,7 @@ else:
             except TimeoutException:
                 print("Loading took too much time!")
 
-        def login(self, cred: dict) -> None:
+        def login(self, cred_xpaths: dict, cred: list) -> None:
             """Method to handle login page.
 
             This method handles the login page by locating the appropiate
@@ -176,11 +176,11 @@ else:
                 None
 
             """
-            usr_name_field: WebElement = self.find_xpaths(cred['Username xpath'])
-            usr_name_field.send_keys(cred['Username'])
-            pword_name_field: WebElement = self.find_xpaths(cred['Password xpath'])
-            pword_name_field.send_keys(cred['Password'])
-            login_button: WebElement = self.find_xpaths(cred['Login xpath'])
+            usr_name_field: WebElement = self.find_xpaths(cred_xpaths['Username xpath'])
+            usr_name_field.send_keys(cred[0])
+            pword_name_field: WebElement = self.find_xpaths(cred_xpaths['Password xpath'])
+            pword_name_field.send_keys(cred[1])
+            login_button: WebElement = self.find_xpaths(cred_xpaths['Login xpath'])
             self.close_popup(login_button)
 
         def navigate(self, xpath: str) -> None:

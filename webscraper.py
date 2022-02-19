@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
 import time
+import os
 from typing import Optional, Union, List
 
 
@@ -43,6 +44,7 @@ else:
                 None
 
             """
+            os.system("windscribe connect")
             self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
 
         @staticmethod
@@ -430,3 +432,4 @@ else:
 
             """
             self.driver.quit()
+            os.system("windscribe disconnect")

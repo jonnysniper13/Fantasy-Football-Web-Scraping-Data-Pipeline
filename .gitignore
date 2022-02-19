@@ -1,14 +1,8 @@
 # Ignore raw_data folder
 raw_data
 
-# Ignore _dev folder
-_dev
-
 # Ignore __pycache__
 __pycache__
 
 # Ignore credentials file
 cred.py
-
-#Ignore Dockerfile
-Dockerfile

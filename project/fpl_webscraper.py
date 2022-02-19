@@ -80,8 +80,7 @@ class FPLWebScraper:
         self.sample_mode: bool = sample_mode
         self.url: str = url
         self.tic: float = time.perf_counter()
-        self.project_dir: str = os.path.dirname(__file__)
-        print(self.project_dir)
+        self.project_dir: str = os.path.dirname(os.path.dirname(__file__))
         self.timestamp: datetime = datetime.now().replace(microsecond=0).isoformat()
         self.page_counter: int = 1
         self.chk_new_page: bool = True
@@ -111,8 +110,8 @@ class FPLWebScraper:
         while self.chk_new_page:
             self.ws = WebScraper()
             self.scrape()
-            self.ws.quit()
             time.sleep(30)
+        self.ws.quit()
         self.write_timestamp()
 
     def scrape(self) -> None:
@@ -141,18 +140,16 @@ class FPLWebScraper:
         credentials: list[str] = self.__get_credentials()
         self.ws.login(xpaths['Credentials'], credentials)
         self.ws.navigate(xpaths['TransferPage'])
-        if self.page_counter == 1:
-            total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
-            self.total_plyrs = int(total_plyrs)
-            total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
-            self.total_pages = int(total_pages.split()[-1])
-        self.ws.goto_page(xpaths['NextPageButton'], self.page_counter)
-        self.cycle_thru_plyr_list()
-        if not self.sample_mode:
-            if self.total_pages == self.page_counter:
-                self.chk_new_page = False
-            self.page_finished_msg()
-            self.page_counter += 1
+        total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
+        self.total_plyrs = int(total_plyrs)
+        total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
+        self.total_pages = int(total_pages.split()[-1])
+        while self.chk_new_page and self.page_counter <= self.total_pages:
+            self.cycle_thru_plyr_list()
+            self.chk_new_page = self.ws.click_next(xpaths['NextPageButton'])
+            if not self.sample_mode:
+                self.page_finished_msg()
+                self.page_counter += 1
 
     @staticmethod
     def __get_credentials() -> List[str]:

@@ -45,10 +45,10 @@ else:
 
             """
             os.system("windscribe connect")
-            self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
+            self.driver: WebElement = webdriver.Chrome(options=self.setup_options(headless=False),)
 
         @staticmethod
-        def setup_options():
+        def setup_options(headless: Optional[bool] = True):
             """Helper function to setup Chromedriver parameters.
 
             This function defines parameters for running the Chromedriver,
@@ -66,8 +66,9 @@ else:
             options = Options()
             options.add_argument('window-size=1920x1080')
             options.add_argument('--no-sandbox')
-            options.add_argument('--headless')
             options.add_argument('--disable-dev-shm-usage')
+            if headless:
+                options.add_argument('--headless')
             return options
 
         def gdpr_consent(self, xpath: str) -> None:
@@ -179,11 +180,18 @@ else:
 
             """
             usr_name_field: WebElement = self.find_xpaths(cred_xpaths['Username xpath'])
-            usr_name_field.send_keys(cred[0])
+            self.slow_type(usr_name_field, cred[0])
             pword_name_field: WebElement = self.find_xpaths(cred_xpaths['Password xpath'])
-            pword_name_field.send_keys(cred[1])
+            self.slow_type(pword_name_field, cred[1])
             login_button: WebElement = self.find_xpaths(cred_xpaths['Login xpath'])
             self.close_popup(login_button)
+
+        @staticmethod
+        def slow_type(input_field, input):
+            #TODO update docstring and types. Make random time?
+            for character in input:
+                input_field.send_keys(character)
+                time.sleep(0.3)
 
         def navigate(self, xpath: str) -> None:
             """Method to navigate to a specified page.
@@ -200,6 +208,7 @@ else:
             """
             nav_to = self.find_xpaths(xpath, multi=False, pause=True)
             nav_to.click()
+            time.sleep(5)
 
         def retrieve_attr(self, xpath_parent: str, xpath_child: Optional[str] = '', attr: Optional[str] = '') -> str:
             """Method to return a specified attribute from the webpage.
@@ -230,6 +239,7 @@ else:
                 return None
 
         def goto_page(self, next_page_xpath: str, desired_page: int) -> None:
+            #TODO
             """Method that moves list to required page.
 
             This method handles the method for clicking the 'Next Page'
@@ -254,8 +264,7 @@ else:
                 page_buttons: list[WebElement] = self.find_xpaths(next_page_xpath, multi=True)
                 self.click_next(page_buttons)
 
-        @staticmethod
-        def click_next(page_buttons: list[WebElement]) -> None:
+        def click_next(self, next_page_xpath: str) -> None:
             """Method that clicks the next page button.
 
             This method will click the 'Next Page' button, located within
@@ -268,11 +277,12 @@ else:
                 None
 
             """
+            page_buttons: list[WebElement] = self.find_xpaths(next_page_xpath, multi=True)
             for button in page_buttons:
                 if button.text == 'Next':
                     button.click()
-                    break
-            time.sleep(1)
+                    return True
+            return False
 
         def find_list(self, xpath: str) -> list[WebElement]:
             """Finds a list from an xpath.

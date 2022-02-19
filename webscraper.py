@@ -1,15 +1,10 @@
 #TODO check through doc strings and remove player etc
 """
-This module scrapes player data from the Premier League fantasy football website.
+This module scrapes data from a specified website.
 
 The module contains one class in which all methods are contained and operated
-out of. The class is also initiated when called in the main block. The scraper
-cycles through each currently registered player and saves all their attributes,
-points history, upcoming fixtures, and previous season data in a dictionary.
-Each dictionary is then exported into a json file within a target directory,
-along with a photo of that player.
-Scraper progress is reported in the terminal, and will end automatically when
-all players have been scraped.
+out of. The class is also initiated when called in the main block. Common scraper
+methods are containing within 
 
 The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()

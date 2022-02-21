@@ -193,7 +193,7 @@ else:
             login_button: WebElement = self.find_xpaths(cred_xpaths['Login xpath'])
             self.close_popup(login_button)
 
-        def slow_type(self, input_field: WebElement, input: str) -> None:
+        def slow_type(self, input_field: WebElement, input_txt: str) -> None:
             """Method to avoid Captcha's by sending keys at a human pace.
 
             This method send keys to fields at a slower pace to replicate
@@ -201,13 +201,13 @@ else:
 
             Args:
                 input_field: WebElement containing the field keys are to be sent to.
-                input: String to be sent to the WebElement field.
+                input_txt: String to be sent to the WebElement field.
 
             Returns:
                 None
 
             """
-            for character in input:
+            for character in input_txt:
                 input_field.send_keys(character)
                 time.sleep(self.human_lag(1, 0.3))
             time.sleep(self.human_lag(1))

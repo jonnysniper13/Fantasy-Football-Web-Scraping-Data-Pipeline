@@ -394,9 +394,9 @@ class FPLWebScraper:
         """
         output: list = []
         for arg in args:
-            if type(arg) == dict:
+            if type(arg) is dict:
                 arg = {}
-            elif type(arg) == list:
+            elif type(arg) is list:
                 arg = []
             else:
                 arg = ''
@@ -642,7 +642,8 @@ class FPLWebScraper:
             {self.line_break}""")
 
     def write_report(self) -> None:
-        """Writes a txt file in the raw data folder containing a timestamp and data verification checks.
+        """Writes a txt file in the raw data folder containing a timestamp and data
+        verification checks.
 
         This report is saved in the raw_data folder as well as being uploaded to the
         s3 bucket.
@@ -681,7 +682,7 @@ class FPLWebScraper:
         """
         report: str = ''
         path = os.path.join(self.project_dir, 'raw_data')
-        for root, dirs, files in os.walk(path):
+        for root, _, files in os.walk(path):
             for filename in files:
                 if filename[-4:] == 'json':
                     with open(os.path.join(root, filename)) as f:

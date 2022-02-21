@@ -80,8 +80,7 @@ class FPLWebScraper:
         self.sample_mode: bool = sample_mode
         self.url: str = url
         self.tic: float = time.perf_counter()
-        self.project_dir: str = os.path.dirname(__file__)
-        print(self.project_dir)
+        self.project_dir: str = os.path.dirname(os.path.dirname(__file__))
         self.timestamp: datetime = datetime.now().replace(microsecond=0).isoformat()
         self.page_counter: int = 1
         self.chk_new_page: bool = True
@@ -93,29 +92,48 @@ class FPLWebScraper:
         self.plyr_dir: str = ''
         self.img_dir: str = ''
         self.s3_client = boto3.client('s3')
-        self.cycle_scraper()
+        self.page_list = []
+        self.line_break = ('=' * 0.8 * os.get_terminal_size().columns)
+        self.id_dict = {}
+        self.start_scraper()
+        #TODO update fullllist
 
-    def cycle_scraper(self) -> None:
-        """Function to initiate the scraper method if the next page exists.
+    def start_scraper(self) -> None:
+        #TODO
+        """Function to initiate the scraper method.
 
-        The function will re-initiate the scraper method if the page counter
-        does not exceed the number of pages on the website. Only initiates
-        the scraper if this is true. After executing the scraper the WebDriver
-        is closed and an enforced time delay is passed on each iteration.
-        After completing the scraper, a timestamp txt file is written.
+        The function will initiate the scraper method and navigates to the
+        required part of the website. It also takes counts on the total
+        number of pages and players. When complete it quits the WebDriver
+        and prints a timestamp file.
 
         Returns:
             None
 
         """
-        while self.chk_new_page:
-            self.ws = WebScraper()
-            self.scrape()
-            self.ws.quit()
-            time.sleep(30)
-        self.write_timestamp()
+        self.ws = WebScraper()
+        self.navigate_website()
+        self.get_counts()
+        self.scrape_handler()
+        self.ws.quit()
 
-    def scrape(self) -> None:
+    def navigate_website(self):
+        #TODO
+        self.ws.driver.get(self.url)
+        self.ws.gdpr_consent(xpaths['CookieButton'])
+        credentials: list[str] = self.__get_credentials()
+        self.ws.login(xpaths['Credentials'], credentials)
+        self.ws.go_to(xpaths['TransferPage'])
+
+    def get_counts(self):
+        #TODO
+        total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
+        self.total_plyrs = int(total_plyrs)
+        total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
+        self.total_pages = int(total_pages.split()[-1])
+
+    def scrape_handler(self) -> None:
+        #TODO remove repeat if not required
         """Function to initiate the web scraper.
 
         This the main web scraper method. It launches the driver to the target website.
@@ -136,23 +154,25 @@ class FPLWebScraper:
             None
 
         """
-        self.ws.driver.get(self.url)
-        self.ws.gdpr_consent(xpaths['CookieButton'])
-        credentials: list[str] = self.__get_credentials()
-        self.ws.login(xpaths['Credentials'], credentials)
-        self.ws.navigate(xpaths['TransferPage'])
-        if self.page_counter == 1:
-            total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
-            self.total_plyrs = int(total_plyrs)
-            total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
-            self.total_pages = int(total_pages.split()[-1])
-        self.ws.goto_page(xpaths['NextPageButton'], self.page_counter)
-        self.cycle_thru_plyr_list()
-        if not self.sample_mode:
-            if self.total_pages == self.page_counter:
-                self.chk_new_page = False
-            self.page_finished_msg()
-            self.page_counter += 1
+        while self.chk_new_page:
+            self.make_plyr_list()
+            self.cycle_thru_plyr_list()
+            self.chk_new_page = self.ws.click_next(xpaths['NextPageButton'])
+            if not self.sample_mode:
+                self.page_finished_msg()
+                self.write_report()
+                [self.page_counter] = self.increase_counters(self.page_counter)
+
+    def make_plyr_list(self):
+        #TODO this will need to modified
+        #add in method to check list first
+        self.page_list = []
+        plyr_list = self.ws.find_list('class="Media__Body-sc-94ghy9-2 eflLUc"')
+        for plyr in plyr_list:
+            plyr_text = plyr.find_elements(By.XPATH, './/div')
+            plyr_id = '-'.join([plyr_text[1].text, plyr_text[0].text])
+            self.page_list.append(plyr_id)
+        time.sleep(self.ws.human_lag(5, 1))
 
     @staticmethod
     def __get_credentials() -> List[str]:
@@ -181,6 +201,7 @@ class FPLWebScraper:
         return usr_name, pword
 
     def cycle_thru_plyr_list(self) -> None:
+        #TODO
         """Cycles through player page and calls scraping method and output.
 
         This method will cycle through the players on the current page list
@@ -189,29 +210,152 @@ class FPLWebScraper:
         progress and resets instance attributes.
 
         Attributes:
-            plyr_list: List of all player elements.
+            plyr_container: List of all player elements.
             popup: Player popup element.
 
         Returns:
             None
 
         """
-        plyr_list = self.ws.find_list(xpaths['PlyrList'])
-        for plyr in plyr_list:
-            self.plyr = plyr
-            popup = self.ws.open_popup(self.plyr, xpaths['PlyrPopup'])
-            self.get_plyr_stats()
-            self.plyr_count += 1
-            self.ws.close_popup(popup)
+        plyr_container = self.ws.find_list(xpaths['PlyrList'])
+        list_count = 0
+        for plyr in plyr_container:
+            self.plyr_dict['ID'] = self.page_list[list_count]
+            plyr_already_scraped = self.check_plyr_scraped()
+            if not plyr_already_scraped:
+                popup = self.ws.open_popup(plyr, xpaths['PlyrPopup'])
+                self.get_plyr_stats()
+                self.ws.close_popup(popup)
             if self.sample_mode:
                 self.chk_new_page = False
                 break
+            self.plyr_count, list_count = self.increase_counters(self.plyr_count, list_count)
             self.progress_update()
-            self.plyr_dict = {}
-            self.plyr_dir = ''
-            self.img_dir = ''
+            self.plyr_dict, self.plyr_dir, self.img_dir = self.reset_var(self.plyr_dict, self.plyr_dir, self.img_dir)
+
+    def check_plyr_scraped(self) -> bool:
+        #TODO
+        """This method checks if a player has recently been scraped.
+
+        This method checks if a player has recently been scraped
+        by checking the appropiate key in the data output dictionary.
+        If a file exists but it was scraped in the last day,
+        the player will not be scraped again. For all other
+        permutations, the file will be deleted and player scraped.
+
+        Attributes:
+            json_file = Full path for player json file.
+            old_plyr_dict = Previously scraped dictionary of player data.
+            last_scraped = Date player was last scraped.
+            delta = Delta between today and the date the player was last
+                scraped.
+
+        Returns:
+            None
+
+        """
+        self.prep_dir()
+        try:
+            json_file: str = os.path.join(self.plyr_dir, f'{self.plyr_dict["ID"]}_data.json')
+            with open(json_file) as f:
+                old_plyr_dict: dict = json.load(f)
+            last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
+            delta: int = (datetime.now() - last_scraped).days
+            if delta >= 7:
+                os.remove(json_file)
+                return False
+            self.plyr_dict['Name'] = old_plyr_dict['Name']
+            return True
+        except FileNotFoundError:
+            return False
+
+    def prep_dir(self) -> None:
+        """Prepares the directories for saving json file and image data.
+
+        This method handles the creation of new folders for the player data
+        to be saved within.
+
+        Returns:
+            None
+
+        """
+        self.plyr_dir = self.make_folder('raw_data', self.plyr_dict['ID'])
+        self.img_dir = self.make_folder(self.plyr_dir, 'images')
+        return
+
+    def make_folder(self, *args: List[str]) -> str:
+        """Helper function to create new folders in a specified location.
+
+        This function creates a new folder in a location specified in the
+        method arguments. It first creates the full path string and then
+        calls a method to create the directory.
+
+        Args:
+            *args: Variable length argument list of folder names.
+
+        Attributes:
+            dir_path = Full folder path of the new folder.
+
+        Raises:
+            FileExistsError: Prints error message if an existing folder
+                already exists.
+
+        Returns:
+            dir_path
+
+        """
+        dir_path = self.create_file_path(self.project_dir, *args)
+        try:
+            os.makedirs(dir_path)
+            return dir_path
+        except FileExistsError:
+            return dir_path
+
+    @staticmethod
+    def create_file_path(root_dir: str, *args: List[str]) -> str:
+        """Helper function to create full filepaths from arguments.
+
+        This function creates a full filepath based on the root directory
+        and further specified folder names.
+
+        Args:
+            root_dir: Root directory path.
+            *args: Variable length argument list of folder names.
+
+        Attributes:
+            file_path: Full file path string.
+
+        Returns:
+            file_path
+
+        """
+        file_path: str = os.path.join(root_dir, *args)
+        return file_path
+
+    @staticmethod
+    def increase_counters(*args):
+        #TODO
+        output = []
+        for arg in args:
+            output.append(arg + 1)
+        return output
+
+    @staticmethod
+    def reset_var(*args):
+        #TODO
+        output = []
+        for arg in args:
+            if type(arg) == dict:
+                arg = {}
+            elif type(arg) == list:
+                arg = []
+            else:
+                arg = ''
+            output.append(arg)
+        return output
 
     def get_plyr_stats(self) -> None:
+        #TODO
         """Handles scraping method for different data types.
 
         This method scrapes the different types of data available for
@@ -224,15 +368,14 @@ class FPLWebScraper:
 
         """
         self.create_plyr_dict()
-        plyr_already_scraped = self.check_plyr_scraped()
-        if not plyr_already_scraped:
-            self.get_plyr_status()
-            self.get_plyr_img_data()
-            self.get_plyr_form_data()
-            self.get_plyr_match_data()
-            self.process_output()
+        self.get_plyr_status()
+        self.get_plyr_img_data()
+        self.get_plyr_form_data()
+        self.get_plyr_match_data()
+        self.process_output()
 
     def create_plyr_dict(self) -> None:
+        #TODO
         """This method creates the player dictionary based on attributes.
 
         This method retrieves player name, position, and team and assigns
@@ -246,14 +389,11 @@ class FPLWebScraper:
 
         """
         plyr_name, plyr_pos, plyr_team = self.ws.get_from_popup_header(xpaths['PlyrDetails'], './*', ['h2', 'span', 'div'])
-        id: str = ' '.join([plyr_team, plyr_pos, plyr_name]).replace(' ', '-')
-        self.plyr_dict = {
-            'Name': plyr_name,
-            'Unique ID': id,
-            'UUID': str(uuid.uuid4()),
-            'Position': plyr_pos,
-            'Team': plyr_team,
-            'Last Scraped': self.timestamp}
+        self.plyr_dict['Name'] = plyr_name
+        self.plyr_dict['UUID'] = str(uuid.uuid4())
+        self.plyr_dict['Position'] = plyr_pos
+        self.plyr_dict['Team'] = plyr_team
+        self.plyr_dict['Last Scraped'] = self.timestamp
 
     def get_plyr_status(self) -> None:
         """Gets player fitness status.
@@ -319,7 +459,7 @@ class FPLWebScraper:
         for k, v in xpaths['MatchDataKeyList'].items():
             try:
                 if k == 'Fixtures':
-                    self.ws.navigate(xpaths['FixPage'])
+                    self.ws.go_to(xpaths['FixPage'])
                     child: WebElement = self.ws.find_xpaths(xpaths[v])
                 else:
                     parent: WebElement = self.ws.find_xpaths(xpaths[v])
@@ -327,103 +467,6 @@ class FPLWebScraper:
                 self.plyr_dict[k] = self.ws.get_from_table(child)
             except NoSuchElementException:
                 self.plyr_dict[k] = 'No data'
-
-    def check_plyr_scraped(self) -> bool:
-        """This method checks if a player has recently been scraped.
-
-        This method checks if a player has recently been scraped
-        by checking the appropiate key in the data output dictionary.
-        If a file exists but it was scraped in the last day,
-        the player will not be scraped again. For all other
-        permutations, the file will be deleted and player scraped.
-
-        Attributes:
-            json_file = Full path for player json file.
-            old_plyr_dict = Previously scraped dictionary of player data.
-            last_scraped = Date player was last scraped.
-            delta = Delta between today and the date the player was last
-                scraped.
-
-        Returns:
-            None
-
-        """
-        self.prep_dir()
-        try:
-            json_file: str = os.path.join(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
-            with open(json_file) as f:
-                old_plyr_dict: dict = json.load(f)
-            last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
-            delta: int = (datetime.now() - last_scraped).days
-            if delta >= 7:
-                os.remove(json_file)
-                return False
-            return True
-        except FileNotFoundError:
-            return False
-
-    def prep_dir(self) -> None:
-        """Prepares the directories for saving json file and image data.
-
-        This method handles the creation of new folders for the player data
-        to be saved within.
-
-        Returns:
-            None
-
-        """
-        self.plyr_dir = self.make_folder('raw_data', self.plyr_dict['Unique ID'])
-        self.img_dir = self.make_folder(self.plyr_dir, 'images')
-        return
-
-    def make_folder(self, *args: List[str]) -> str:
-        """Helper function to create new folders in a specified location.
-
-        This function creates a new folder in a location specified in the
-        method arguments. It first creates the full path string and then
-        calls a method to create the directory.
-
-        Args:
-            *args: Variable length argument list of folder names.
-
-        Attributes:
-            dir_path = Full folder path of the new folder.
-
-        Raises:
-            FileExistsError: Prints error message if an existing folder
-                already exists.
-
-        Returns:
-            dir_path
-
-        """
-        dir_path = self.create_file_path(self.project_dir, *args)
-        try:
-            os.makedirs(dir_path)
-            return dir_path
-        except FileExistsError:
-            return dir_path
-
-    @staticmethod
-    def create_file_path(root_dir: str, *args: List[str]) -> str:
-        """Helper function to create full filepaths from arguments.
-
-        This function creates a full filepath based on the root directory
-        and further specified folder names.
-
-        Args:
-            root_dir: Root directory path.
-            *args: Variable length argument list of folder names.
-
-        Attributes:
-            file_path: Full file path string.
-
-        Returns:
-            file_path
-
-        """
-        file_path: str = os.path.join(root_dir, *args)
-        return file_path
 
     def process_output(self) -> None:
         """Handles the routine for processing the scraper output.
@@ -442,13 +485,13 @@ class FPLWebScraper:
             None
 
         """
-        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.plyr_dict["Unique ID"]}_data.json')
-        img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["Unique ID"]}_0.png')
+        json_file_path: str = self.create_file_path(self.plyr_dir, f'{self.plyr_dict["ID"]}_data.json')
+        img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["ID"]}_0.png')
         self.write_json(json_file_path)
         self.write_img(img_file_path)
-        s3_plyr_path = f'raw_data/{self.plyr_dict["Unique ID"]}'
-        #self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["Unique ID"]}_data.json')
-        #self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["Unique ID"]}_0.png')
+        #s3_plyr_path = f'raw_data/{self.plyr_dict["ID"]}'
+        #self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["ID"]}_data.json')
+        #self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
         """Saves player dictionary in player folder.
@@ -463,7 +506,7 @@ class FPLWebScraper:
             None
 
         """
-        with open(json_file_path, 'x') as json_file:
+        with open(json_file_path, 'w') as json_file:
             json.dump(self.plyr_dict, json_file)
 
     def write_img(self, img_file_path: str) -> None:
@@ -549,20 +592,37 @@ class FPLWebScraper:
             None
 
         """
-        line_brk = '#########################################'
-        print(f'{line_brk}\nPage {self.page_counter} of {self.total_pages} finished.\n{line_brk}')
+        print(f'{self.line_break}\n \
+                    Page {self.page_counter} of {self.total_pages} finished.\n \
+                    {self.line_break}')
 
-    def write_timestamp(self) -> None:
+    def write_report(self) -> None:
         """Writes a txt file in the raw data folder containing the timestamp.
 
         Returns:
             None
 
         """
-        txt_path = os.path.join(self.project_dir, 'raw_data', 'timestamp.txt')
+        txt_path = os.path.join(self.project_dir, 'raw_data', 'report.txt')
         with open(txt_path, 'w') as f:
-            f.write(f'Scraper last ran at: {self.timestamp}')
-        self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/timestamp.txt')
+            f.write(f'Scraper ran at: {self.timestamp}.\n \
+                    {self.plyr_count} players scraped.\n\n \
+                    f{self.verification_report}')
+        #self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
+
+    def verification_report(self) -> None:
+        #TODO
+        report = 'Please verify the following:'
+        path = os.path.join(self.project_dir, 'raw_data')
+        for root, dirs, files in os.walk(path):
+            for filename in files:
+                if filename[-4:] == 'json':
+                    with open(os.path.join(root, filename)) as f:
+                        plyr_dict = json.load(f)
+                    if plyr_dict['ID'][7:] not in plyr_dict['Name']:
+                        report = f"{report}\n{plyr_dict['ID'][7:]} \
+                            = {plyr_dict['Name']}, {plyr_dict['Name']}, {plyr_dict['Name']}"
+        return report
 
 
 if __name__ == "__main__":

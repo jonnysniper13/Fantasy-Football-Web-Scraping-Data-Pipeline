@@ -10,7 +10,7 @@ scraped_data = WebScraper()
 """
 
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -19,6 +19,7 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 import os
 from typing import Optional, Union, List
+import random
 
 
 if __name__ == "__main__":
@@ -38,35 +39,40 @@ else:
             This method creates all class variables.
 
             Attributes:
-                driver: Initiates the Chromedriver element.
+                driver: Initiates the webdriver element.
 
             Returns:
                 None
 
             """
             os.system("windscribe connect")
-            self.driver: WebElement = webdriver.Chrome(options=self.setup_options(headless=False),)
+            self.driver: WebElement = webdriver.Firefox(options=self.setup_options(headless=True))
 
         @staticmethod
         def setup_options(headless: Optional[bool] = True):
-            """Helper function to setup Chromedriver parameters.
+            """Helper function to setup webdriver parameters.
 
-            This function defines parameters for running the Chromedriver,
+            This function defines parameters for running the webdriver,
             including running in headless mode, defining the window size
             (to support running in headless mode), disabling sandbox, and
             disabling the driver from using memory.
 
             Attributes:
-                options (ChromeOptions): Sets parameters for Chromedriver.
+                options (FirefoxOptions): Sets parameters for webdriver.
 
             Returns:
                 options
 
             """
             options = Options()
-            options.add_argument('window-size=1920x1080')
+            options.add_argument('--start-maximized')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--disable-impl-side-painting')
+            options.add_argument('--disable-gpu-sandbox')
+            options.add_argument('--disable-accelerated-2d-canvas')
+            options.add_argument('--disable-accelerated-jpeg-decoding')
             if headless:
                 options.add_argument('--headless')
             return options
@@ -81,7 +87,7 @@ else:
                 xpath: XPATH element identifier to be located.
 
             Attributes:
-                accept_cookies_button: Chromedriver WebElement for
+                accept_cookies_button: Webdriver WebElement for
                     the accept cookies button.
 
             Returns:
@@ -91,6 +97,7 @@ else:
             accept_cookies_button: WebElement = self.find_xpaths(xpath, multi=False, pause=True)
             self.close_popup(accept_cookies_button)
             self.driver.switch_to.default_content()
+            time.sleep(self.human_lag(1))
 
         def find_xpaths(self, xpath: str, multi: Optional[bool] = False, pause: Optional[bool] = False) -> Union[WebElement, list[WebElement]]:
             """Helper function to shorten syntax for finding data types.
@@ -108,7 +115,7 @@ else:
                     Defaults to False.
 
             Attributes:
-                obj: Chromedriver webelement of specified XPATH.
+                obj: Webdriver webelement of specified XPATH.
 
             Raises:
                 TimeoutException: Prints an error message if page loading
@@ -120,13 +127,13 @@ else:
             """
             try:
                 if pause:
-                    time.sleep(1)
+                    time.sleep(self.human_lag(5, 1))
                     WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, f'//*[@{xpath}]')))
                 if multi:
                     obj: list[WebElement] = self.driver.find_elements(By.XPATH, f"//*[@{xpath}]")
                 else:
                     obj: WebElement = self.driver.find_element(By.XPATH, f"//*[@{xpath}]")
-                time.sleep(1)
+                time.sleep(self.human_lag(5, 1))
                 return obj
             except TimeoutException:
                 print("Loading took too much time!")
@@ -139,7 +146,7 @@ else:
             disappeared by enforcing a dynamic time delay (up to 30 sec).
 
             Args:
-                popup_name: Chromedriver webelement of specified
+                popup_name: Webdriver webelement of specified
                     XPATH.
 
             Raises:
@@ -153,7 +160,7 @@ else:
             try:
                 popup_name.click()
                 WebDriverWait(self.driver, 60).until(EC.invisibility_of_element_located((popup_name)))
-                time.sleep(1)
+                time.sleep(self.human_lag(5, 1))
             except TimeoutException:
                 print("Loading took too much time!")
 
@@ -168,11 +175,11 @@ else:
                 cred: Dictionary of credentials
 
             Attributes:
-                usr_name_field: Chromedriver webelement of
+                usr_name_field: Webdriver webelement of
                     specified XPATH.
-                pword_name_field: Chromedriver webelement of
+                pword_name_field: Webdriver webelement of
                     specified XPATH.
-                login_button: Chromedriver webelement of
+                login_button: Webdriver webelement of
                     specified XPATH.
 
             Returns:
@@ -186,14 +193,49 @@ else:
             login_button: WebElement = self.find_xpaths(cred_xpaths['Login xpath'])
             self.close_popup(login_button)
 
-        @staticmethod
-        def slow_type(input_field, input):
-            #TODO update docstring and types. Make random time?
+        def slow_type(self, input_field: WebElement, input: str) -> None:
+            """Method to avoid Captcha's by sending keys at a human pace.
+
+            This method send keys to fields at a slower pace to replicate
+            human use and avoid Captchas.
+
+            Args:
+                input_field: WebElement containing the field keys are to be sent to.
+                input: String to be sent to the WebElement field.
+
+            Returns:
+                None
+
+            """
             for character in input:
                 input_field.send_keys(character)
-                time.sleep(0.3)
+                time.sleep(self.human_lag(1, 0.3))
+            time.sleep(self.human_lag(1))
 
-        def navigate(self, xpath: str) -> None:
+        @staticmethod
+        def human_lag(upper: int, lower: Optional[float] = 0.1) -> float:
+            """Generates a random time between the upper and lower limit.
+
+            This method creates a random time lag between the optional lower
+            and upper limit. If no lower limit is provided, 0 is used, This
+            is to emulate human interaction with the webpage, in order to avoid
+            Captchas.
+
+            Args:
+                upper: Upper limit.
+                lower: lower limit, optionally input, else 0.
+
+            Attributes:
+                random_time: Random number generated between the limits.
+
+            Returns:
+                None
+
+            """
+            random_time: float = random.uniform(lower, upper)
+            return random_time
+
+        def go_to(self, xpath: str) -> None:
             """Method to navigate to a specified page.
 
             This method takes in a required XPATH element, locates it,
@@ -208,7 +250,7 @@ else:
             """
             nav_to = self.find_xpaths(xpath, multi=False, pause=True)
             nav_to.click()
-            time.sleep(5)
+            time.sleep(self.human_lag(3, 10))
 
         def retrieve_attr(self, xpath_parent: str, xpath_child: Optional[str] = '', attr: Optional[str] = '') -> str:
             """Method to return a specified attribute from the webpage.
@@ -238,49 +280,26 @@ else:
             except NoSuchElementException:
                 return None
 
-        def goto_page(self, next_page_xpath: str, desired_page: int) -> None:
-            #TODO
-            """Method that moves list to required page.
-
-            This method handles the method for clicking the 'Next Page'
-            button to ensure it is called the required number of times (i.e.
-            up to the page counter). Each time a new page is loaded, the
-            button element is re-located and the boolean next page checker is
-            reset.
-
-            Args:
-                next_page_xpath: XPATH for the next page button.
-                desired_page: Target page number.
-
-            Attributes:
-                page_buttons: Chromedriver WebElement for the
-                    'Next Page' button on the list.
-
-            Returns:
-                None
-
-            """
-            for _ in range(1, desired_page):
-                page_buttons: list[WebElement] = self.find_xpaths(next_page_xpath, multi=True)
-                self.click_next(page_buttons)
-
-        def click_next(self, next_page_xpath: str) -> None:
+        def click_next(self, next_page_xpath: str) -> bool:
             """Method that clicks the next page button.
 
             This method will click the 'Next Page' button, located within
             a WebElement list. A time delay is enforced after a new page is clicked.
+            Provided a 'next page' button is found, it will return True, else, False
+            is returned when the last page is reached.
 
             Args:
                 page_buttons: List of WebElements for page navigator buttons.
 
             Returns:
-                None
+                bool
 
             """
             page_buttons: list[WebElement] = self.find_xpaths(next_page_xpath, multi=True)
             for button in page_buttons:
                 if button.text == 'Next':
                     button.click()
+                    time.sleep(self.human_lag(10, 3))
                     return True
             return False
 
@@ -320,6 +339,7 @@ else:
             """
             self.driver.execute_script("arguments[0].click();", WebDriverWait(self.driver, 60).until(EC.element_to_be_clickable(target)))
             popup: WebElement = self.find_xpaths(xpath)
+            time.sleep(self.human_lag(10, 3))
             return popup
 
         def get_from_popup_header(self, xpath_parent: str, xpath_child: str, tag_list: list) -> List[str]:

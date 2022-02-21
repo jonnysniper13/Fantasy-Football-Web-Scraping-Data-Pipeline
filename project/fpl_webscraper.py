@@ -14,7 +14,6 @@ The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()
 """
 
-
 from pydantic import NonNegativeFloat
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement

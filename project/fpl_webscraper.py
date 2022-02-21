@@ -14,6 +14,7 @@ The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()
 """
 
+from pydantic import NonNegativeFloat
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException
@@ -56,12 +57,12 @@ class FPLWebScraper:
             sample_mode: Mode for collecting one player sample for testing.
             url: URL for website to be scraped.
             tic: App timer start timestmamp.
-            script_dir: Root directory path name.
+            project_dir: Root directory path name.
             timestamp: Create timestamp for scraper.
             page_counter: Counter to count the current page for the
                 list of players.
             chk_new_page: Boolean variable that determines if the current
-                page is not the latest.
+                page is not the last.
             total_pages: Total number of pages to be scraped.
             plyr_count: Counter to count the number of players that
                 have been scraped.
@@ -70,7 +71,8 @@ class FPLWebScraper:
             plyr_dict: Dictionary of data for that player.
             plyr_dir: Directory path for player data to be saved.
             img_dir: Directory path for player image to be saved.
-            html_inputs: HTML XPATH and tag names to be used by Selenium.
+            page_list: List of players on the open page.
+            line_break: Line break string to be used for print statements.
             s3_client: Initiates the boto3 client.
 
         Returns:
@@ -91,21 +93,17 @@ class FPLWebScraper:
         self.plyr_dict: dict = {}
         self.plyr_dir: str = ''
         self.img_dir: str = ''
+        self.page_list: list = []
+        self.line_break: str = ('=' * 0.8 * os.get_terminal_size().columns)
         self.s3_client = boto3.client('s3')
-        self.page_list = []
-        self.line_break = ('=' * 0.8 * os.get_terminal_size().columns)
-        self.id_dict = {}
         self.start_scraper()
-        #TODO update fullllist
 
     def start_scraper(self) -> None:
-        #TODO
         """Function to initiate the scraper method.
 
         The function will initiate the scraper method and navigates to the
         required part of the website. It also takes counts on the total
-        number of pages and players. When complete it quits the WebDriver
-        and prints a timestamp file.
+        number of pages and players. When complete it quits the WebDriver.
 
         Returns:
             None
@@ -117,38 +115,52 @@ class FPLWebScraper:
         self.scrape_handler()
         self.ws.quit()
 
-    def navigate_website(self):
-        #TODO
+    def navigate_website(self) -> None:
+        """Navigates website actions to get to the desired page.
+
+        The function will navigate the website by initiating it, handling
+        gdpr popus, logging in, and then going to the desired page.
+
+        Attributes:
+            credentials: List of credentials for the login page.
+
+        Returns:
+            None
+
+        """
         self.ws.driver.get(self.url)
         self.ws.gdpr_consent(xpaths['CookieButton'])
         credentials: list[str] = self.__get_credentials()
         self.ws.login(xpaths['Credentials'], credentials)
         self.ws.go_to(xpaths['TransferPage'])
 
-    def get_counts(self):
-        #TODO
+    def get_counts(self) -> None:
+        """Function to get total numbers of players and pages.
+
+        The function will find the WebElement containing the total number
+        of players and pages and will assign these to attributes.
+
+        Attributes:
+            total_plyrs: Text from WebElement of total player.
+            total_pages: Text from WebElement of total pages.
+
+        Returns:
+            None
+
+        """
         total_plyrs: str = self.ws.retrieve_attr(xpaths['PlyrCount'], xpaths['PlyrCountChild'])
         self.total_plyrs = int(total_plyrs)
         total_pages: str = self.ws.retrieve_attr(xpaths['PageCount'], xpaths['PageCountChild'])
         self.total_pages = int(total_pages.split()[-1])
 
     def scrape_handler(self) -> None:
-        #TODO remove repeat if not required
-        """Function to initiate the web scraper.
+        """Function to control how the target page is handled.
 
-        This the main web scraper method. It launches the driver to the target website.
-        It then handles the gdpr popup, logs in to the website and then navigates
-        to the required part of the website.
-        If this is the first iteration it counts the total number of
-        players and pages that need to be scraped, else it navigates the website
-        to the required player page.
-        It then inititates the player scraper for all players on the selected page,
-        and increases the page counter by 1.
-
-        Attributes:
-            credentials: Login credentials for webpage.
-            total_plyrs: Total number of players in string format.
-            total_pages: Total number of pages in string format.
+        Provided there are still new pages to be handled, this method
+        will create a player list for the current page of players on the
+        page, and then initiate the method to cycle through these players.
+        Once complete, it will move on to the next page, reset and increment
+        counters/arrtibutes, and write a page finished report.
 
         Returns:
             None
@@ -163,14 +175,26 @@ class FPLWebScraper:
                 self.write_report()
                 [self.page_counter] = self.increase_counters(self.page_counter)
 
-    def make_plyr_list(self):
-        #TODO this will need to modified
-        #add in method to check list first
+    def make_plyr_list(self) -> NonNegativeFloat:
+        """Creates the list of players on the current page.
+
+        This method finds the table of players on the current page, and creates
+        a list from it. For each player and ID is generated based on their name,
+        club and position.
+
+        Attributes:
+            plyr_text = Text from WebElement.
+            plyr_id = Generated id from WebElement text.
+
+        Returns:
+            None
+
+        """
         self.page_list = []
         plyr_list = self.ws.find_list('class="Media__Body-sc-94ghy9-2 eflLUc"')
         for plyr in plyr_list:
-            plyr_text = plyr.find_elements(By.XPATH, './/div')
-            plyr_id = '-'.join([plyr_text[1].text, plyr_text[0].text])
+            plyr_text: list[str] = plyr.find_elements(By.XPATH, './/div')
+            plyr_id: str = '-'.join([plyr_text[1].text, plyr_text[0].text])
             self.page_list.append(plyr_id)
         time.sleep(self.ws.human_lag(5, 1))
 
@@ -201,29 +225,32 @@ class FPLWebScraper:
         return usr_name, pword
 
     def cycle_thru_plyr_list(self) -> None:
-        #TODO
         """Cycles through player page and calls scraping method and output.
 
         This method will cycle through the players on the current page list
         and call the method for scraping the different types of
-        data. After scraping the data it clears the dictionary, reports on
+        data. It also checks whether the player meets the criteria for being
+        recently scraped and will not re-scrape if this is the case.
+        After scraping the data it clears the dictionary, reports on
         progress and resets instance attributes.
 
         Attributes:
             plyr_container: List of all player elements.
+            list_count: Counter for players on the page list.
+            plyr_already_scraped: Checks if player has been recently scraped.
             popup: Player popup element.
 
         Returns:
             None
 
         """
-        plyr_container = self.ws.find_list(xpaths['PlyrList'])
-        list_count = 0
+        plyr_container: List[WebElement] = self.ws.find_list(xpaths['PlyrList'])
+        list_count: int = 0
         for plyr in plyr_container:
             self.plyr_dict['ID'] = self.page_list[list_count]
-            plyr_already_scraped = self.check_plyr_scraped()
+            plyr_already_scraped: bool = self.check_plyr_scraped()
             if not plyr_already_scraped:
-                popup = self.ws.open_popup(plyr, xpaths['PlyrPopup'])
+                popup: WebElement = self.ws.open_popup(plyr, xpaths['PlyrPopup'])
                 self.get_plyr_stats()
                 self.ws.close_popup(popup)
             if self.sample_mode:
@@ -234,14 +261,15 @@ class FPLWebScraper:
             self.plyr_dict, self.plyr_dir, self.img_dir = self.reset_var(self.plyr_dict, self.plyr_dir, self.img_dir)
 
     def check_plyr_scraped(self) -> bool:
-        #TODO
         """This method checks if a player has recently been scraped.
 
         This method checks if a player has recently been scraped
         by checking the appropiate key in the data output dictionary.
-        If a file exists but it was scraped in the last day,
+        If a file exists and it was scraped recently (see delta),
         the player will not be scraped again. For all other
         permutations, the file will be deleted and player scraped.
+        If the player has been recently scraped and won't be rescraped,
+        the player dictionary name is updated from the old dictionary.
 
         Attributes:
             json_file = Full path for player json file.
@@ -333,17 +361,39 @@ class FPLWebScraper:
         return file_path
 
     @staticmethod
-    def increase_counters(*args):
-        #TODO
-        output = []
+    def increase_counters(*args) -> list:
+        """Increases counters by 1.
+
+        Args:
+            args: Arguments to be updated.
+
+        Attributes:
+            output: List of updated arguments.
+
+        Returns:
+            output
+
+        """
+        output: list = []
         for arg in args:
             output.append(arg + 1)
         return output
 
     @staticmethod
-    def reset_var(*args):
-        #TODO
-        output = []
+    def reset_var(*args) -> list:
+        """Resets variables to empty, respecting their data type.
+
+        Args:
+            args: Arguments to be updated.
+
+        Attributes:
+            output: List of updated arguments.
+
+        Returns:
+            output
+
+        """
+        output: list = []
         for arg in args:
             if type(arg) == dict:
                 arg = {}
@@ -355,7 +405,6 @@ class FPLWebScraper:
         return output
 
     def get_plyr_stats(self) -> None:
-        #TODO
         """Handles scraping method for different data types.
 
         This method scrapes the different types of data available for
@@ -375,14 +424,10 @@ class FPLWebScraper:
         self.process_output()
 
     def create_plyr_dict(self) -> None:
-        #TODO
         """This method creates the player dictionary based on attributes.
 
-        This method retrieves player name, position, and team and assigns
-        these to the player dictionary.
-
-        Attributes:
-            id: Unique ID for each player that does not change.
+        This method retrieves player name, position, UUID, team and timestamp,
+        and assigns these to the player dictionary.
 
         Returns:
             None
@@ -592,27 +637,50 @@ class FPLWebScraper:
             None
 
         """
-        print(f'{self.line_break}\n \
-                    Page {self.page_counter} of {self.total_pages} finished.\n \
-                    {self.line_break}')
+        print(
+            f"""{self.line_break}
+            Page {self.page_counter} of {self.total_pages} finished.
+            {self.line_break}""")
 
     def write_report(self) -> None:
-        """Writes a txt file in the raw data folder containing the timestamp.
+        """Writes a txt file in the raw data folder containing a timestamp and data verification checks.
+
+        This report is saved in the raw_data folder as well as being uploaded to the
+        s3 bucket.
+
+        Attributes:
+            txt_path: String path where the report is to be saved.
 
         Returns:
             None
 
         """
-        txt_path = os.path.join(self.project_dir, 'raw_data', 'report.txt')
+        txt_path: str = os.path.join(self.project_dir, 'raw_data', 'report.txt')
         with open(txt_path, 'w') as f:
-            f.write(f'Scraper ran at: {self.timestamp}.\n \
-                    {self.plyr_count} players scraped.\n\n \
-                    f{self.verification_report}')
+            f.write(
+                f"""Scraper ran at: {self.timestamp}.
+                {self.plyr_count} players scraped.
+
+                {self.verification_report}""")
         #self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
 
-    def verification_report(self) -> None:
-        #TODO
-        report = 'Please verify the following:'
+    def verification_report(self) -> str:
+        """Performs a data verification check to confirm that the ID matches the player.
+
+        Verification is confirmed by verifying that the name part of the player
+        ID appears within the player name. This won't be the case for 100% of the
+        players due to abbreviations permutations - hence the need for this report.
+
+        Attributes:
+            report: Output report string to be printed.
+            path: Location of player dictionaries.
+            plyr_dict: Player dictionary read from json file.
+
+        Returns:
+            None
+
+        """
+        report: str = ''
         path = os.path.join(self.project_dir, 'raw_data')
         for root, dirs, files in os.walk(path):
             for filename in files:
@@ -620,8 +688,9 @@ class FPLWebScraper:
                     with open(os.path.join(root, filename)) as f:
                         plyr_dict = json.load(f)
                     if plyr_dict['ID'][7:] not in plyr_dict['Name']:
-                        report = f"{report}\n{plyr_dict['ID'][7:]} \
-                            = {plyr_dict['Name']}, {plyr_dict['Name']}, {plyr_dict['Name']}"
+                        report = f"""Please verify the following:
+
+                        {plyr_dict['ID'][7:]} = {plyr_dict['Name']}, {plyr_dict['Name']}, {plyr_dict['Name']}"""
         return report
 
 

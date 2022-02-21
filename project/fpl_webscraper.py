@@ -14,7 +14,6 @@ The only usage of this module is to initiate an instance of the Class:
 scraped_data = WebScraper()
 """
 
-from pydantic import NonNegativeFloat
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException
@@ -175,7 +174,7 @@ class FPLWebScraper:
                 self.write_report()
                 [self.page_counter] = self.increase_counters(self.page_counter)
 
-    def make_plyr_list(self) -> NonNegativeFloat:
+    def make_plyr_list(self) -> None:
         """Creates the list of players on the current page.
 
         This method finds the table of players on the current page, and creates

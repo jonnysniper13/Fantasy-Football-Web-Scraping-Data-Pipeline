@@ -29,6 +29,7 @@ import getpass
 import boto3
 from webscraper import WebScraper
 from xpaths import xpaths
+from report import write_report
 
 
 class FPLWebScraper:
@@ -81,7 +82,7 @@ class FPLWebScraper:
         self.sample_mode: bool = sample_mode
         self.url: str = url
         self.tic: float = time.perf_counter()
-        self.project_dir: str = os.path.dirname(os.path.dirname(__file__))
+        self.project_dir: str = self.get_parent(__file__, 2)
         self.timestamp: datetime = datetime.now().replace(microsecond=0).isoformat()
         self.page_counter: int = 1
         self.chk_new_page: bool = True
@@ -93,7 +94,7 @@ class FPLWebScraper:
         self.plyr_dir: str = ''
         self.img_dir: str = ''
         self.page_list: list = []
-        self.line_break: str = ('=' * 0.8 * os.get_terminal_size().columns)
+        self.line_break: str = ('=' * os.get_terminal_size().columns)
         self.s3_client = boto3.client('s3')
         self.start_scraper()
 
@@ -159,7 +160,7 @@ class FPLWebScraper:
         will create a player list for the current page of players on the
         page, and then initiate the method to cycle through these players.
         Once complete, it will move on to the next page, reset and increment
-        counters/arrtibutes, and write a page finished report.
+        counters/arrtibutes.
 
         Returns:
             None
@@ -171,7 +172,6 @@ class FPLWebScraper:
             self.chk_new_page = self.ws.click_next(xpaths['NextPageButton'])
             if not self.sample_mode:
                 self.page_finished_msg()
-                self.write_report()
                 [self.page_counter] = self.increase_counters(self.page_counter)
 
     def make_plyr_list(self) -> None:
@@ -283,7 +283,7 @@ class FPLWebScraper:
         """
         self.prep_dir()
         try:
-            json_file: str = os.path.join(self.plyr_dir, f'{self.plyr_dict["ID"]}_data.json')
+            json_file: str = self.create_file_path(self.plyr_dir, f'{self.plyr_dict["ID"]}_data.json')
             with open(json_file) as f:
                 old_plyr_dict: dict = json.load(f)
             last_scraped: datetime = datetime.strptime(old_plyr_dict['Last Scraped'][:10], '%Y-%m-%d')
@@ -357,6 +357,25 @@ class FPLWebScraper:
 
         """
         file_path: str = os.path.join(root_dir, *args)
+        return file_path
+
+    @staticmethod
+    def get_parent(file_path: str, levels: Optional[int] = 1) -> str:
+        """Helper function to get parent directory for inputted files.
+
+        This function returns the filepath of the parent directory of a file
+        depending on how many levels is required.
+
+        Args:
+            file_path: Inputted file path.
+            levels: Number of levels above file to return directory.
+
+        Returns:
+            file_path
+
+        """
+        for _ in range(levels):
+            file_path = os.path.dirname(file_path)
         return file_path
 
     @staticmethod
@@ -567,7 +586,7 @@ class FPLWebScraper:
             None
 
         """
-        if (len(os.listdir(os.path.dirname(img_file_path))) == 0 and
+        if (len(os.listdir(self.get_parent(img_file_path))) == 0 and
                 self.plyr_dict['Image SRC'].lower().startswith('http')):
             urllib.request.urlretrieve(self.plyr_dict['Image SRC'], img_file_path)
 
@@ -637,62 +656,9 @@ class FPLWebScraper:
 
         """
         print(
-            f"""{self.line_break}
-            Page {self.page_counter} of {self.total_pages} finished.
-            {self.line_break}""")
-
-    def write_report(self) -> None:
-        """Writes a txt file in the raw data folder containing a timestamp and data
-        verification checks.
-
-        This report is saved in the raw_data folder as well as being uploaded to the
-        s3 bucket.
-
-        Attributes:
-            txt_path: String path where the report is to be saved.
-
-        Returns:
-            None
-
-        """
-        txt_path: str = os.path.join(self.project_dir, 'raw_data', 'report.txt')
-        with open(txt_path, 'w') as f:
-            f.write(
-                f"""Scraper ran at: {self.timestamp}.
-                {self.plyr_count} players scraped.
-
-                {self.verification_report}""")
-        #self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
-
-    def verification_report(self) -> str:
-        """Performs a data verification check to confirm that the ID matches the player.
-
-        Verification is confirmed by verifying that the name part of the player
-        ID appears within the player name. This won't be the case for 100% of the
-        players due to abbreviations permutations - hence the need for this report.
-
-        Attributes:
-            report: Output report string to be printed.
-            path: Location of player dictionaries.
-            plyr_dict: Player dictionary read from json file.
-
-        Returns:
-            None
-
-        """
-        report: str = ''
-        path = os.path.join(self.project_dir, 'raw_data')
-        for root, _, files in os.walk(path):
-            for filename in files:
-                if filename[-4:] == 'json':
-                    with open(os.path.join(root, filename)) as f:
-                        plyr_dict = json.load(f)
-                    if plyr_dict['ID'][7:] not in plyr_dict['Name']:
-                        report = f"""Please verify the following:
-
-                        {plyr_dict['ID'][7:]} = {plyr_dict['Name']}, {plyr_dict['Name']}, {plyr_dict['Name']}"""
-        return report
+            f"""{self.line_break}\nPage {self.page_counter} of {self.total_pages} finished.\n{self.line_break}""")
 
 
 if __name__ == "__main__":
     ff_scraper = FPLWebScraper('https://fantasy.premierleague.com/')
+    write_report(os.path.dirname(ff_scraper.plyr_dir))

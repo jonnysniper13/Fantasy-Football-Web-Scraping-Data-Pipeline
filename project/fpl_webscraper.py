@@ -661,4 +661,4 @@ class FPLWebScraper:
 
 if __name__ == "__main__":
     ff_scraper = FPLWebScraper('https://fantasy.premierleague.com/')
-    write_report(os.path.dirname(ff_scraper.plyr_dir))
+    write_report(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'raw_data'))

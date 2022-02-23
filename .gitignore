@@ -2,3 +2,4 @@ raw_data
 __pycache__
 cred.py
 .deepsource.toml
+dev

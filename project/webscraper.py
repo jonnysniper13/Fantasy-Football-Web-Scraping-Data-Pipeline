@@ -57,6 +57,7 @@ else:
 
             Attributes:
                 options (ChromeOptions): Sets parameters for webdriver.
+                proxy: User defined IP address.
 
             Returns:
                 options
@@ -94,7 +95,7 @@ else:
             self.driver.switch_to.default_content()
             time.sleep(self.human_lag(1))
 
-        def find_xpaths(self, xpath: str, multi: Optional[bool] = False, pause: Optional[bool] = False) -> Union[WebElement, list[WebElement]]:
+        def find_xpaths(self, xpath: str, multi: Optional[bool] = False, pause: Optional[bool] = False) -> Union[WebElement, List[WebElement]]:
             """Helper function to shorten syntax for finding data types.
 
             This function searches the current webpage for elements located by
@@ -298,7 +299,7 @@ else:
                     return True
             return False
 
-        def find_list(self, xpath: str) -> list[WebElement]:
+        def find_list(self, xpath: str) -> List[WebElement]:
             """Finds a list from an xpath.
 
             This method finds a container list based on a given xpath element.

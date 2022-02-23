@@ -26,7 +26,7 @@ import uuid
 import urllib.request
 from typing import Optional, List
 import getpass
-import boto3
+# import boto3
 import random
 from webscraper import WebScraper
 from xpaths import xpaths
@@ -96,7 +96,7 @@ class FPLWebScraper:
         self.img_dir: str = ''
         self.page_list: list = []
         self.line_break: str = ('=' * 30)
-        self.s3_client = boto3.client('s3')
+        # self.s3_client = boto3.client('s3')
         self.start_scraper()
 
     def start_scraper(self) -> None:
@@ -217,7 +217,6 @@ class FPLWebScraper:
         """
         try:
             usr_name: str = random.choice(cred.username)
-            print(usr_name)
         except AttributeError:
             usr_name: str = input("Enter username:")
         try:

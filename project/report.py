@@ -31,7 +31,7 @@ def write_report(dir_path: str) -> None:
     # self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
 
 
-def verification_report(dir_path: str) -> list[str, int, datetime]:
+def verification_report(dir_path: str) -> list:
     """Produces verification report on scraped data.
 
     Verification report which calculates number of populated json files, image

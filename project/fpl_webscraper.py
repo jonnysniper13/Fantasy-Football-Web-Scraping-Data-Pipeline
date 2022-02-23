@@ -27,6 +27,7 @@ import urllib.request
 from typing import Optional, List
 import getpass
 import boto3
+import random
 from webscraper import WebScraper
 from xpaths import xpaths
 from report import write_report
@@ -94,7 +95,7 @@ class FPLWebScraper:
         self.plyr_dir: str = ''
         self.img_dir: str = ''
         self.page_list: list = []
-        self.line_break: str = ('=' * os.get_terminal_size().columns)
+        self.line_break: str = ('=' * 30)
         self.s3_client = boto3.client('s3')
         self.start_scraper()
 
@@ -111,6 +112,7 @@ class FPLWebScraper:
         """
         self.ws = WebScraper()
         self.navigate_website()
+        print('Logged in and ready to scrape.')
         self.get_counts()
         self.scrape_handler()
         self.ws.quit()
@@ -214,7 +216,8 @@ class FPLWebScraper:
 
         """
         try:
-            usr_name: str = cred.username
+            usr_name: str = random.choice(cred.username)
+            print(usr_name)
         except AttributeError:
             usr_name: str = input("Enter username:")
         try:
@@ -552,9 +555,9 @@ class FPLWebScraper:
         img_file_path: str = self.create_file_path(self.img_dir, f'{self.plyr_dict["ID"]}_0.png')
         self.write_json(json_file_path)
         self.write_img(img_file_path)
-        #s3_plyr_path = f'raw_data/{self.plyr_dict["ID"]}'
-        #self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["ID"]}_data.json')
-        #self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["ID"]}_0.png')
+        # s3_plyr_path = f'raw_data/{self.plyr_dict["ID"]}'
+        # self.s3_client.upload_file(json_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/{self.plyr_dict["ID"]}_data.json')
+        # self.s3_client.upload_file(img_file_path, 'fplplayerdatabucket', f'{s3_plyr_path}/images/{self.plyr_dict["ID"]}_0.png')
 
     def write_json(self, json_file_path: str) -> None:
         """Saves player dictionary in player folder.

@@ -28,7 +28,7 @@ def write_report(dir_path: str) -> None:
     print(report_txt)
     with open(txt_path, 'w') as f:
         f.write(report_txt)
-    #self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
+    # self.s3_client.upload_file(txt_path, 'fplplayerdatabucket', 'raw_data/report.txt')
 
 
 def verification_report(dir_path: str) -> list[str, int, datetime]:

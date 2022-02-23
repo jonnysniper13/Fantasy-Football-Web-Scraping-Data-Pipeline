@@ -10,14 +10,13 @@ scraped_data = WebScraper()
 """
 
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.remote.webelement import WebElement
 import time
-import os
 from typing import Optional, Union, List
 import random
 
@@ -45,11 +44,10 @@ else:
                 None
 
             """
-            os.system("windscribe connect")
-            self.driver: WebElement = webdriver.Firefox(options=self.setup_options(headless=True))
+            self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
 
         @staticmethod
-        def setup_options(headless: Optional[bool] = True):
+        def setup_options():
             """Helper function to setup webdriver parameters.
 
             This function defines parameters for running the webdriver,
@@ -58,23 +56,20 @@ else:
             disabling the driver from using memory.
 
             Attributes:
-                options (FirefoxOptions): Sets parameters for webdriver.
+                options (ChromeOptions): Sets parameters for webdriver.
 
             Returns:
                 options
 
             """
             options = Options()
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
+            options.add_argument('--headless')
             options.add_argument('--start-maximized')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--disable-gpu')
-            options.add_argument('--disable-impl-side-painting')
-            options.add_argument('--disable-gpu-sandbox')
-            options.add_argument('--disable-accelerated-2d-canvas')
-            options.add_argument('--disable-accelerated-jpeg-decoding')
-            if headless:
-                options.add_argument('--headless')
             return options
 
         def gdpr_consent(self, xpath: str) -> None:
@@ -462,4 +457,3 @@ else:
 
             """
             self.driver.quit()
-            os.system("windscribe disconnect")

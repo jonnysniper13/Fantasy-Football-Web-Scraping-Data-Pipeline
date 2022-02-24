@@ -47,13 +47,16 @@ else:
             self.driver: WebElement = webdriver.Chrome(options=self.setup_options())
 
         @staticmethod
-        def setup_options():
+        def setup_options(headless: Optional[bool] = True):
             """Helper function to setup webdriver parameters.
 
             This function defines parameters for running the webdriver,
             including running in headless mode, defining the window size
             (to support running in headless mode), disabling sandbox, and
             disabling the driver from using memory.
+
+            Args:
+                headless: Determines if scraper will be run in headless mode.
 
             Attributes:
                 options (ChromeOptions): Sets parameters for webdriver.
@@ -67,10 +70,11 @@ else:
             options.add_argument('--disable-blink-features=AutomationControlled')
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
             options.add_experimental_option('useAutomationExtension', False)
-            options.add_argument('--headless')
             options.add_argument('--start-maximized')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+            if headless:
+                options.add_argument('--headless')
             return options
 
         def gdpr_consent(self, xpath: str) -> None:

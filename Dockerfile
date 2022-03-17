@@ -20,7 +20,7 @@ RUN pip3 --no-cache-dir install --upgrade awscli
 RUN ["pip3", "install", "-r", "requirements.txt"]
 
 # Pass environment variables to the image so that they can be called when the docker is ran.
-ENTRYPOINT ["echo", "FPL_USER_NAME = $FPL_USER_NAME"] \
-    && ["echo", "FPL_PWORD = $FPL_PWORD"]
+ENTRYPOINT ["export", "FPL_USER_NAME = $FPL_USER_NAME"] \
+    && ["export", "FPL_PWORD = $FPL_PWORD"]
 
 CMD ["python", "./project/fpl_webscraper.py"]

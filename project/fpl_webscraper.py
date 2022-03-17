@@ -26,7 +26,6 @@ import urllib.request
 from typing import Optional, List
 import getpass
 # import boto3
-import random
 from webscraper import WebScraper
 from xpaths import xpaths
 from report import write_report
@@ -215,9 +214,8 @@ class FPLWebScraper:
 
         """
         try:
-            import cred
-            usr_name: str = random.choice(cred.username)
-            pword: str = cred.password
+            usr_name: str = os.getenv('FPL_USER_NAME')
+            pword: str = os.getenv('FPL_PWORD')
         except (AttributeError, ModuleNotFoundError):
             usr_name: str = input("Enter username:")
             pword: str = getpass.getpass('Enter password:')

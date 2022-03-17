@@ -21,7 +21,7 @@ import json
 import time
 from datetime import datetime
 import os
-# import cred
+import cred
 import uuid
 import urllib.request
 from typing import Optional, List
@@ -216,14 +216,11 @@ class FPLWebScraper:
 
         """
         try:
-            # usr_name: str = random.choice(cred.username)
-            usr_name: str = os.environ.get('FPL_USER_NAME')
-            print(usr_name)
+            usr_name: str = random.choice(cred.username)
         except AttributeError:
             usr_name: str = input("Enter username:")
         try:
-            # pword: str = cred.password
-            pword: str = os.environ.get('FPL_PWORD')
+            pword: str = cred.password
         except AttributeError:
             pword: str = getpass.getpass('Enter password:')
         return usr_name, pword
